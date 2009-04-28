@@ -1,12 +1,15 @@
 # See bottom of file for notices
 
 package Foswiki::Plugins::SafeWikiPlugin::Parser;
-use base 'HTML::Parser';
+use HTML::Parser;
+
+@Foswiki::Plugins::SafeWikiPlugin::Parser::ISA = ( 'HTML::Parser' );
 
 use strict;
 
-require Foswiki::Plugins::SafeWikiPlugin::Node;
-require Foswiki::Plugins::SafeWikiPlugin::Leaf;
+use Foswiki::Plugins::SafeWikiPlugin::Node ();
+use Foswiki::Plugins::SafeWikiPlugin::Leaf ();
+use Foswiki::Plugins::SafeWikiPlugin::Declaration ();
 
 sub new {
     my ($class) = @_;
@@ -14,7 +17,7 @@ sub new {
     my $this = $class->SUPER::new(
         start_h => [\&_openTag, 'self,tagname,attr' ],
         end_h => [\&_closeTag, 'self,tagname'],
-        declaration_h => [\&_ignore, 'self'],
+        declaration_h => [\&_declaration, 'self,text'],
         default_h => [\&_text, 'self,text'],
         comment_h => [\&_comment, 'self,text'] );
     $this->empty_element_tags(1);
@@ -85,6 +88,15 @@ sub _closeTag {
         }
     }
     $this->_apply( $tag );
+}
+
+sub _declaration {
+    my( $this, $text ) = @_;
+    my $l = new Foswiki::Plugins::SafeWikiPlugin::Declaration($text);
+    if (defined $this->{stackTop}) {
+        $l->addChild( $this->{stackTop} );
+    }
+    $this->{stackTop} = $l;
 }
 
 sub _text {
