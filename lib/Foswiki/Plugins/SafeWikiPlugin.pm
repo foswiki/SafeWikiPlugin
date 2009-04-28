@@ -25,14 +25,29 @@ sub initPlugin {
     return $parser ? 1 : 0;
 }
 
+my $CONDITIONAL_IF = "{\0";
+my $CONDITIONAL_ENDIF = "\0";
+
 # Handle the complete HTML page about to be sent to the browser
 sub completePageHandler {
     #my($html, $httpHeaders) = @_;
 
     return unless $_[1] =~ m#^Content-type: text/html#mi;
 
+    my @condifs;
+#<!--[if IE]><style type="text/css" media="screen">
+#pre {
+#	overflow-x:auto;
+#}
+#</style>
+#<![endif]-->
+
     # Parse the HTML and generate a parse tree
     # This handler can be patched into pre-4.2 revs of Foswiki
+    $_[0] =~ s/(<!--\[if [^]]*\]>)(.*?)<!\[endif\]-->/
+      push(@condifs, $1);
+      "${CONDITIONAL_IF}$#condifs;$2$CONDITIONAL_ENDIF"/ges;
+
     my $tree = $parser->parseHTML( $_[0] );
 
     # Now re-generate HTML, applying security constraints as we go.
@@ -40,6 +55,7 @@ sub completePageHandler {
 
     # For debugging the HTML parser, use a null filter
     #$_[0] = $tree->generate(\&dummyFilter, sub { $_[0]; });
+    $_[0] =~ s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<[endif]-->/gs;
 }
 
 sub _filterURI {
