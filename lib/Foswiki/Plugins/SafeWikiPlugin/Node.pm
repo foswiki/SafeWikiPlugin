@@ -101,7 +101,11 @@ sub generate {
     $p = ' '.$p if $p;
 
     # Rebuild the tag
-    return "<$tag$p>$text</$tag>";
+    if ($text eq '' && $tag =~ /^(p|br|img|hr|input|meta|link)$/i) {
+        return "<$tag$p />";
+    } else {
+        return "<$tag$p>$text</$tag>";
+    }
 }
 
 # remove the event handlers named in the parameters from the tag
