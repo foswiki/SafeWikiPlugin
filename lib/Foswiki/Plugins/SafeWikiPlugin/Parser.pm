@@ -20,6 +20,7 @@ sub new {
         declaration_h => [\&_declaration, 'self,text'],
         default_h => [\&_text, 'self,text'],
         comment_h => [\&_comment, 'self,text'] );
+    $this->attr_encoded(1);
     $this->empty_element_tags(1);
     if ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity}) {
         $this->strict_end(1);
