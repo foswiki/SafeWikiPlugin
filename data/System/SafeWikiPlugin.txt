@@ -56,7 +56,7 @@ The authors shall not in any case be liable for special, incidental,
 consequential, indirect or other similar damages arising from the use
 of this software.
 
-If in any doubt do not use it.
+If in _any_ doubt, do not use it.
 
 ---++ Gory Details
 
@@ -121,6 +121,7 @@ Sponsors for support and improvements are always welcome.
 |  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
 |  Plugin Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  30 Apr 2009: | Foswikitask:Item8143: First public release |
 |  Dependencies: | %$DEPENDENCIES% |
 |  Plugin Home: | http://foswiki.org/Extensions/SafeWikiPlugin |
 
