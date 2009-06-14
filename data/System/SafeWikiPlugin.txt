@@ -117,11 +117,12 @@ Another great Foswiki extension from the <a style="text-decoration:none" href="h
 Sponsors for support and improvements are always welcome.
 
 |  Plugin Author(s): | Crawford Currie http://wikiring.com from an original idea by Sven Dowideit http://wikiring.com |
-|  Copyright: | &copy; 2007-2008 C-Dot Consultants http://c-dot.co.uk |
+|  Copyright: | &copy; 2007-2009 C-Dot Consultants http://c-dot.co.uk |
 |  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
 |  Plugin Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
-|  30 Apr 2009: | Foswikitask:Item8143: First public release |
+|  14 Jun 2009: | Foswikitask:Item8181 - plugin made aware of use of foswikiStrikeOne which is needed to work with Foswiki 1.0.6 and later versions. |
+|  30 Apr 2009: | Foswikitask:Item8143 - First public release |
 |  Dependencies: | %$DEPENDENCIES% |
 |  Plugin Home: | http://foswiki.org/Extensions/SafeWikiPlugin |
 

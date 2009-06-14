@@ -7,7 +7,7 @@ use Assert;
 require Foswiki::Plugins::SafeWikiPlugin::Parser;
 
 our $VERSION = '$Rev$';
-our $RELEASE = '30 Apr 2009';
+our $RELEASE = '14 Jun 2009';
 our $SHORTDESCRIPTION = 'Secure your Foswiki so it can\'t be used for mounting phishing attacks';
 our $NO_PREFS_IN_TOPIC = 1;
 
@@ -92,7 +92,7 @@ sub _filterHandler {
 1;
 __DATA__
 
-Copyright (C) 2007-2008 C-Dot Consultants http://c-dot.co.uk
+Copyright (C) 2007-2009 C-Dot Consultants http://c-dot.co.uk
 All rights reserved
 Author: Crawford Currie
 

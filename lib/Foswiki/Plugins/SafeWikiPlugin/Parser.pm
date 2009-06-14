@@ -138,7 +138,7 @@ sub _apply {
 1;
 __DATA__
 
-Copyright (C) 2007-2008 C-Dot Consultants http://c-dot.co.uk
+Copyright (C) 2007-2009 C-Dot Consultants http://c-dot.co.uk
 All rights reserved
 Author: Crawford Currie
 
