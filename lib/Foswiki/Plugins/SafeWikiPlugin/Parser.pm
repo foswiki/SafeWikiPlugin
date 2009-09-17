@@ -1,11 +1,9 @@
 # See bottom of file for notices
 
 package Foswiki::Plugins::SafeWikiPlugin::Parser;
-use HTML::Parser;
-
-@Foswiki::Plugins::SafeWikiPlugin::Parser::ISA = ( 'HTML::Parser' );
-
 use strict;
+use HTML::Parser ();
+our @ISA = ( 'HTML::Parser' );
 
 use Foswiki::Plugins::SafeWikiPlugin::Node ();
 use Foswiki::Plugins::SafeWikiPlugin::Leaf ();
@@ -69,8 +67,10 @@ my %autoclose = map { ($_, 1) } qw( li td th tr);
 sub _openTag {
     my( $this, $tag, $attrs ) = @_;
 
-    if ($autoclose{$tag} &&
-          $this->{stackTop} && $this->{stackTop}->{tag} eq $tag) {
+    if ($autoclose{$tag}
+          && $this->{stackTop}
+            && defined $this->{stackTop}->{tag}
+              && $this->{stackTop}->{tag} eq $tag) {
         $this->_apply( $tag );
     }
 

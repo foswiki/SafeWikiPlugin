@@ -4,15 +4,15 @@ package Foswiki::Plugins::SafeWikiPlugin;
 use strict;
 use Assert;
 
-require Foswiki::Plugins::SafeWikiPlugin::Parser;
+use Foswiki::Plugins::SafeWikiPlugin::Parser ();
 
 our $VERSION = '$Rev$';
-our $RELEASE = '14 Jun 2009';
+our $RELEASE = '17 Sep 2009';
 our $SHORTDESCRIPTION = 'Secure your Foswiki so it can\'t be used for mounting phishing attacks';
 our $NO_PREFS_IN_TOPIC = 1;
 
-our $URIFILTER;
-our $CODEFILTER;
+our %FILTERIN;
+our %FILTEROUT;
 our $parser;
 
 sub initPlugin {
@@ -58,16 +58,37 @@ sub completePageHandler {
     $_[0] =~ s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<[endif]-->/gs;
 }
 
+sub _filter {
+    my ($code, $type) = @_;
+
+    if (scalar($Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"}||'')) {
+        unless (defined($FILTEROUT{$type})) {
+            # the eval expands $Foswiki::cfg vars
+            $FILTEROUT{$type} =
+              join('|',
+                   map { s/(\$Foswiki::cfg({.*?})+)/eval($1)/ge; qr/($_)/ }
+                     @{$Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"}});
+        }
+        return 0 if ($code =~ /$FILTEROUT{$type}/);
+    }
+    if (scalar($Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Safe$type"}||'')) {
+        unless (defined($FILTERIN{$type})) {
+            # the eval expands $Foswiki::cfg vars
+            $FILTERIN{$type} =
+              join('|',
+                   map { s/(\$Foswiki::cfg({.*?})+)/eval($1)/ge; qr/($_)/ }
+                     @{$Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Safe$type"}});
+        }
+        return 0 unless ($code =~ /$FILTERIN{$type}/);
+    }
+    return 1;
+}
+
 sub _filterURI {
     my $uri = shift;
-    return '' unless $uri;
-    unless (defined($URIFILTER)) {
-        # the eval expands $Foswiki::cfg vars
-        $URIFILTER =
-          join('|', map {s/(\$Foswiki::cfg({.*?})+)/eval($1)/ge; "($_)" }
-                 @{$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeURI}});
-    }
-    return $uri if $uri =~ /$URIFILTER/o;
+
+    my $ok = _filter($uri, 'URI');
+    return $uri if ($ok);
     Foswiki::Func::writeWarning("SafeWikiPlugin: Disarmed URI '$uri' on "
                                 .$ENV{REQUEST_URI}.$ENV{QUERY_STRING});
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI} ||
@@ -76,14 +97,9 @@ sub _filterURI {
 
 sub _filterHandler {
     my $code = shift;
-    return '' unless $code;
-    unless (defined($CODEFILTER)) {
-        # the eval expands $Foswiki::cfg vars
-        $CODEFILTER =
-          join('|', map { s/(\$Foswiki::cfg({.*?})+)/eval($1)/ge; qr/($_)/ }
-                 @{$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeHandler}});
-    }
-    return $code if $code =~ /$CODEFILTER/o;
+    return '' unless defined $code && length($code);
+    my $ok = _filter($code, 'Handler');
+    return $code if ($ok);
     Foswiki::Func::writeWarning("SafeWikiPlugin: Disarmed on* '$code' on "
                                 .$ENV{REQUEST_URI}.$ENV{QUERY_STRING});
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler};
