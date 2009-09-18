@@ -8,3 +8,4 @@ lib/Foswiki/Plugins/SafeWikiPlugin/Parser.pm 0644 Perl module
 lib/Foswiki/Plugins/SafeWikiPlugin/Declaration.pm 0644 Perl module
 lib/Foswiki/Plugins/SafeWikiPlugin/Node.pm 0644 Perl module
 lib/Foswiki/Plugins/SafeWikiPlugin/Leaf.pm 0644 Perl module
+lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/Enabled.pm 0644 Perl module
