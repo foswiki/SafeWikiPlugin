@@ -55,7 +55,7 @@ sub completePageHandler {
 
     # For debugging the HTML parser, use a null filter
     #$_[0] = $tree->generate(\&dummyFilter, sub { $_[0]; });
-    $_[0] =~ s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<[endif]-->/gs;
+    $_[0] =~ s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<![endif]-->/gs;
 }
 
 sub _filter {
