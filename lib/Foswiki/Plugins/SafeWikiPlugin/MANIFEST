@@ -1,11 +1,14 @@
 # Release manifest for SafeWikiPlugin
 data/System/SafeWikiPlugin.txt 0644 Documentation
-pub/System/SafeWikiPlugin/wikiringlogo20x20.png 0644
+lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/Enabled.pm 0644
+lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/SafeURI.pm 0644
+lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/UnsafeURI.pm 0644
+lib/Foswiki/Plugins/SafeWikiPlugin.pm 0644
+lib/Foswiki/Plugins/SafeWikiPlugin/Config.spec 0644
+lib/Foswiki/Plugins/SafeWikiPlugin/Declaration.pm 0644
+lib/Foswiki/Plugins/SafeWikiPlugin/Leaf.pm 0644
+lib/Foswiki/Plugins/SafeWikiPlugin/Node.pm 0644
+lib/Foswiki/Plugins/SafeWikiPlugin/Parser.pm 0644
 pub/System/SafeWikiPlugin/safewiki.png 0644
-lib/Foswiki/Plugins/SafeWikiPlugin.pm 0644 Perl module
-lib/Foswiki/Plugins/SafeWikiPlugin/Config.spec 0444 Configuration parameters
-lib/Foswiki/Plugins/SafeWikiPlugin/Parser.pm 0644 Perl module
-lib/Foswiki/Plugins/SafeWikiPlugin/Declaration.pm 0644 Perl module
-lib/Foswiki/Plugins/SafeWikiPlugin/Node.pm 0644 Perl module
-lib/Foswiki/Plugins/SafeWikiPlugin/Leaf.pm 0644 Perl module
-lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/Enabled.pm 0644 Perl module
+#pub/System/SafeWikiPlugin/safewiki.svg 0644
+pub/System/SafeWikiPlugin/wikiringlogo20x20.png 0644

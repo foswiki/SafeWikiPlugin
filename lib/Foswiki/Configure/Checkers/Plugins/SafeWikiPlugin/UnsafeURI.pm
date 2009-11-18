@@ -1,5 +1,5 @@
 # See bottom of file for license and copyright information
-package Foswiki::Configure::Checkers::Plugins::SafeWikiPlugin::Enabled;
+package Foswiki::Configure::Checkers::Plugins::SafeWikiPlugin::UnsafeURI;
 use warnings;
 use strict;
 
@@ -10,31 +10,25 @@ use base 'Foswiki::Configure::Checker';
 sub check {
     my $this = shift;
     my $warnings;
-    my $defaultUrlHost = $Foswiki::cfg{DefaultUrlHost};
-    my $scriptUrlPath  = $Foswiki::cfg{ScriptUrlPath};
+    my $unsafeURIs = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{UnsafeURI};
+    my @goodURIs =
+      Foswiki::Configure::Checkers::Plugins::SafeWikiPlugin::SafeURI::getGoodURIs(
+      );
 
     if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled} ) {
-        if ( $Foswiki::cfg{INCLUDE}{AllowURLs} ) {
-            $warnings .= $this->WARN(<<'HERE');
-{INCLUDE}{AllowURLs} is true, which allows topic contributors to
-<code>%INCLUDE%</code> content from arbitrary URLs.
+        foreach my $goodURI (@goodURIs) {
+            foreach my $unsafeURI (@{$unsafeURIs}) {
+                my $expandedUnsafeURI =
+                  Foswiki::Configure::Checkers::Plugins::SafeWikiPlugin::SafeURI::expandVars(
+                    $unsafeURI);
+                if ( $goodURI =~ /$expandedUnsafeURI/ ) {
+                    $warnings .= $this->WARN(<<"HERE");
+Regexp: "<code style="color:#009900;">$unsafeURI</code>" filters the good URI: 
+"<code style="color:#009900;">$goodURI</code>", which may prevent your wiki from
+working correctly.
 HERE
-        }
-        if ( $Foswiki::cfg{AllowInlineScript} ) {
-            $warnings .= $this->WARN(<<'HERE');
-{AllowInlineScript} is true, which allows topic contributors to embed
-arbitrary Javascript.
-HERE
-        }
-        if ( $Foswiki::cfg{AllowRedirectUrl} ) {
-            $warnings .= $this->WARN(<<"HERE");
-{AllowRedirectUrl} is true, giving more power to the 
-<code>?redirectto</code> URL parameter than is usually necessary. For example, a 
-specially crafted link may be used on some scripts to redirect a user to an 
-arbitrary external URL after performing some action, <a href=
-'$defaultUrlHost$scriptUrlPath/edit/Sandbox/TestTopicAUTOINC0?redirectto=http://www.w3.org'>
-like this</a>.
-HERE
+                }
+            }
         }
     }
 
