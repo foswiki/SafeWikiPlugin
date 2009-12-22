@@ -122,6 +122,7 @@ Sponsors for support and improvements are always welcome.
 |  Plugin Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
 |  18 Nov 2009 | Foswiki:Task:Item1963: add configure checkers for basic sanity of {SafeURI} and {UnsafeURI} filter values; also complain if {AllowRedirectUrl} is true |
+|  12 Oct 2009 | Foswiki:Task:Item8255: fix extraneous (missing '!') &lt;[endif]--&gt; shown by IEs at top of page |
 |  17 Sep 2009 | Foswiki:Task:Item8220: support filtering of eval() calls by supporting filter-out for handlers, and URIs too while I was in there Foswiki:Task:Item1963: hardened the regex that selects where to get JS from to restrict it to the Foswiki System web, which is not normally writable by ordinary users |
 |  14 Jun 2009 | Foswiki:Task:Item8181: plugin made aware of use of foswikiStrikeOne which is needed to work with Foswiki 1.0.6 and later versions. |
 |  30 Apr 2009 | Foswiki:Task:Item8143: First public release |
