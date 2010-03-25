@@ -5,7 +5,8 @@ use warnings;
 
 use Foswiki::Configure::Checker;
 
-use base 'Foswiki::Configure::Checker';
+use Foswiki::Configure::Checker;
+our @ISA = qw( Foswiki::Configure::Checker );
 
 my @goodURIs = (
     "$Foswiki::cfg{DefaultUrlHost}$Foswiki::cfg{PubUrlPath}/"
