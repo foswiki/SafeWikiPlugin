@@ -116,10 +116,11 @@ Another great Foswiki extension from the <a style="text-decoration:none" href="h
 
 Sponsors for support and improvements are always welcome.
 
-|  Plugin Author(s): | Crawford Currie http://wikiring.com from an original idea by Sven Dowideit http://wikiring.com |
+|  Author(s): | Crawford Currie http://wikiring.com from an original idea by Sven Dowideit http://wikiring.com |
 |  Copyright: | &copy; 2007-2009 C-Dot Consultants http://c-dot.co.uk |
 |  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
-|  Plugin Version: | %$VERSION% |
+|  Release: | %$RELEASE% |
+|  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
 |  18 Nov 2009 | Foswiki:Task:Item1963: add configure checkers for basic sanity of {SafeURI} and {UnsafeURI} filter values; also complain if {AllowRedirectUrl} is true |
 |  12 Oct 2009 | Foswiki:Task:Item8255: fix extraneous (missing '!') &lt;[endif]--&gt; shown by IEs at top of page |
@@ -127,10 +128,8 @@ Sponsors for support and improvements are always welcome.
 |  14 Jun 2009 | Foswiki:Task:Item8181: plugin made aware of use of foswikiStrikeOne which is needed to work with Foswiki 1.0.6 and later versions. |
 |  30 Apr 2009 | Foswiki:Task:Item8143: First public release |
 |  Dependencies: | %$DEPENDENCIES% |
-|  Plugin Home: | http://foswiki.org/Extensions/SafeWikiPlugin |
-
-
-<!-- Do _not_ attempt to edit this topic; it is auto-generated. Please add comments/questions/remarks to the feedback topic on twiki.org instead. -->
+|  Home: | http://foswiki.org/Extensions/SafeWikiPlugin |
+|  Support: | http://foswiki.org/Support/SafeWikiPlugin |
 
 %META:FILEATTACHMENT{name="wikiringlogo20x20.png" attr="h" comment="" version="1"}%
 %META:FILEATTACHMENT{name="safewiki.png" attr="h" comment="" version="1"}%
