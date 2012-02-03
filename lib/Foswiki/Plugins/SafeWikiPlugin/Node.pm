@@ -69,7 +69,7 @@ sub addChild {
 
 # generate the parse tree, applying filters
 sub generate {
-    my ($this, $filterURI, $filterHandler) = @_;
+    my ($this, $filterURI, $filterHandler, $filterInline) = @_;
     my $tag = $this->{tag};
 
     # make the names of the function versions
@@ -88,7 +88,7 @@ sub generate {
     # Process children
     my $text = '';
     foreach my $kid ( @{$this->{children}} ) {
-        $text .= $kid->generate($filterURI, $filterHandler);
+        $text .= $kid->generate($filterURI, $filterHandler, $filterInline);
     }
 
     # Rebuild the tag parameters
@@ -100,6 +100,12 @@ sub generate {
     }
     my $p = join( ' ', @params );
     $p = ' '.$p if $p;
+
+    if ($tag =~ m/^script$/ && $text) {
+        my $holdtext = $text;
+        $text = &$filterInline($text);
+        return '' unless ($text);
+        }
 
     # Rebuild the tag
     if ($text eq '' && $tag =~ /^(p|br|img|hr|input|meta|link)$/i) {
@@ -247,7 +253,7 @@ sub _OBJECT {
 
 sub _SCRIPT {
     my ($this, $filter) = @_;
-    return 0 unless (defined($this->{attrs}->{src}));
+    #return 0 unless (defined($this->{attrs}->{src}));
     $this->_filterURIs($filter, 'src');
     return 1;
 }

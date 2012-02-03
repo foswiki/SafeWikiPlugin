@@ -43,10 +43,10 @@ sub addChild {
 
 # generate the parse tree, applying filters
 sub generate {
-    my ($this, $filterURI, $filterHandler) = @_;
+    my ($this, $filterURI, $filterHandler, $filterInline) = @_;
     my $text = $this->{text};
     foreach my $kid ( @{$this->{children}} ) {
-        $text .= $kid->generate($filterURI, $filterHandler);
+        $text .= $kid->generate($filterURI, $filterHandler, $filterInline);
     }
     return $text;
 }
