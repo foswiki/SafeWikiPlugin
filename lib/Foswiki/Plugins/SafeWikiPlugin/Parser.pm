@@ -82,10 +82,13 @@ sub _openTag {
 sub _closeTag {
     my( $this, $tag ) = @_;
 
-    if ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity}) {
-        if (!$this->{stackTop} || $this->{stackTop}->{tag} ne $tag) {
-            die "Unclosed <$this->{stackTop}->{tag} at </$tag\n".
-              $this->stringify();
+    if (!$this->{stackTop} || $this->{stackTop}->{tag} ne $tag) {
+        if ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity}) {
+                die "Unclosed <$this->{stackTop}->{tag} at </$tag\n".
+                  $this->stringify();
+        } else {
+            print STDERR "ignoring unmatched close tag: $tag\n";
+            return;
         }
     }
     $this->_apply( $tag );

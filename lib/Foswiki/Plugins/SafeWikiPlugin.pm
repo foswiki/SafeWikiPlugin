@@ -37,7 +37,6 @@ sub initPlugin {
 
 my $CONDITIONAL_IF = "{\0";
 my $CONDITIONAL_ENDIF = "\0}";
-my $BASE_CLOSE = "{\1}";
 
 # Handle the complete HTML page about to be sent to the browser
 sub completePageHandler {
@@ -59,8 +58,6 @@ sub completePageHandler {
       push(@condifs, $1);
       "${CONDITIONAL_IF}$#condifs;$2$CONDITIONAL_ENDIF"/ges;
 
-    $_[0] =~ s/<\/base>/$BASE_CLOSE/;
-
     my $holdHTML = $_[0];
     eval {
         my $tree = $parser->parseHTML( $_[0] );
@@ -71,8 +68,6 @@ sub completePageHandler {
         $_[0] = $holdHTML;
     }
 
-
-    $_[0] =~ s/$BASE_CLOSE/<\/base>/;
     $_[0] =~ s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<![endif]-->/gs;
 }
 
