@@ -8,7 +8,7 @@ use Error ':try';
 use Foswiki::Plugins::SafeWikiPlugin::Parser ();
 
 our $VERSION = '$Rev$';
-our $RELEASE = '22 Dec 2009';
+our $RELEASE = '2.0';
 our $SHORTDESCRIPTION = 'Secure your Foswiki so it can\'t be used for mounting phishing attacks';
 our $NO_PREFS_IN_TOPIC = 1;
 
@@ -61,11 +61,15 @@ sub completePageHandler {
 
     $_[0] =~ s/<\/base>/$BASE_CLOSE/;
 
+    my $holdHTML = $_[0];
     eval {
         my $tree = $parser->parseHTML( $_[0] );
         $_[0] = $tree->generate(\&_filterURI, \&_filterHandler, \&_filterInline);
     };
-    print STDERR "SAFEWIKI: HTML parser threw an exception processing $web.$topic\n $@\n" if ($@);
+    if ($@) {
+        print STDERR "SAFEWIKI: HTML parser threw an exception processing $web.$topic\n $@\n";
+        $_[0] = $holdHTML;
+    }
 
 
     $_[0] =~ s/$BASE_CLOSE/<\/base>/;
