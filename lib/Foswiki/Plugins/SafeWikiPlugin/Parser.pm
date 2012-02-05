@@ -9,6 +9,8 @@ use Foswiki::Plugins::SafeWikiPlugin::Node ();
 use Foswiki::Plugins::SafeWikiPlugin::Leaf ();
 use Foswiki::Plugins::SafeWikiPlugin::Declaration ();
 
+use constant TRACE_OPEN_CLOSE => 1;
+
 sub new {
     my ($class) = @_;
 
@@ -30,6 +32,9 @@ sub new {
 sub parseHTML {
     my $this = $_[0];
     $this->_resetStack();
+    $this->utf8_mode() if $Foswiki::cfg{Site}{CharSet} =~ /^utf-8$/i;
+    # Text still contains <nop> - ignore it
+    $this->ignore_tags('nop');
     $this->parse($_[1]);
     $this->eof();
     $this->_apply(undef);
@@ -56,7 +61,7 @@ sub _resetStack {
     my $this = shift;
 
     $this->{stackTop} = undef;
-    $this->{stack} = ();
+    $this->{stack} = [];
 }
 
 # Support autoclose of the tags that are most typically incorrectly
@@ -66,7 +71,6 @@ my %autoclose = map { ($_, 1) } qw( li td th tr);
 
 sub _openTag {
     my( $this, $tag, $attrs ) = @_;
-
     if ($autoclose{$tag}
           && $this->{stackTop}
             && defined $this->{stackTop}->{tag}
@@ -74,6 +78,9 @@ sub _openTag {
         $this->_apply( $tag );
     }
 
+    print STDERR (' ' x scalar(@{$this->{stack}})) . "open: "
+	. ($tag||'unknown')."\n"
+	if TRACE_OPEN_CLOSE;
     push( @{$this->{stack}}, $this->{stackTop} ) if $this->{stackTop};
     $this->{stackTop} =
       new Foswiki::Plugins::SafeWikiPlugin::Node($tag, $attrs);
@@ -82,16 +89,17 @@ sub _openTag {
 sub _closeTag {
     my( $this, $tag ) = @_;
 
-    if (!$this->{stackTop} || $this->{stackTop}->{tag} ne $tag) {
-        if ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity}) {
-                die "Unclosed <$this->{stackTop}->{tag} at </$tag\n".
-                  $this->stringify();
-        } else {
-            print STDERR "ignoring unmatched close tag: $tag\n";
-            return;
-        }
+    print STDERR (' ' x scalar(@{$this->{stack}})) . "close: "
+	. ($tag||'unknown')."\n"
+	if TRACE_OPEN_CLOSE;
+    if ($this->{stackTop} && $this->{stackTop}->{tag} eq $tag) {
+	$this->_apply( $tag );
+    } elsif ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity}) {
+	die "Unclosed <$this->{stackTop}->{tag} at </$tag\n".
+	    $this->stringify();
+    } else {
+	print STDERR "ignoring unmatched close tag: $tag\n";
     }
-    $this->_apply( $tag );
 }
 
 sub _declaration {
