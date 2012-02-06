@@ -81,7 +81,6 @@ sub _openTag {
     {
         $this->_apply($tag);
     }
-
     print STDERR ( ' ' x scalar( @{ $this->{stack} } ) ) 
       . "open: "
       . ( $tag || 'unknown' ) . "\n"

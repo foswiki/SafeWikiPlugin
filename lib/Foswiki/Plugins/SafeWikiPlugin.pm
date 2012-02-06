@@ -64,14 +64,22 @@ sub completePageHandler {
 
     my $holdHTML = $_[0];
     eval {
-        my $tree = $parser->parseHTML( $_[0] );
-        $_[0] =
-          $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
+	my $tree = $parser->parseHTML( $_[0] );
+	$_[0] =
+	    $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
     };
     if ($@) {
-        print STDERR
-"SAFEWIKI: HTML parser threw an exception processing $web.$topic\n $@\n";
-        $_[0] = $holdHTML;
+	print STDERR
+	    "SAFEWIKI: exception while processing\n $@\n";
+	if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN' ) {
+	    $_[0] = $holdHTML;
+	} else {
+	    # FAIL
+	    my $e = $@;
+	    $_[0] = Foswiki::Func::loadTemplate('safewikierror') ||
+		"Error loading safewiki error page. %EXCEPTION%";
+	    $_[0] =~ s/%EXCEPTION%/$e/;
+	}
     }
 
     $_[0] =~
