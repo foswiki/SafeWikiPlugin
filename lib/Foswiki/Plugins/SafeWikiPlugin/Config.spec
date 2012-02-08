@@ -1,10 +1,11 @@
 #---+ Extensions
 #---++ SafeWikiPlugin
-# **SELECT FAIL,WARN**
+# **SELECT FAIL,ASSERT,WARN**
 # If set to FAIL, then threats will be defused. If set to WARN, then Foswiki
 # will continue to operate normally and any threats are logged to the error
 # log without being disarmed (this is useful when tuning the filters for
-# a specific site).
+# a specific site). ASSERT is like FAIL except that if FOSWIKI_ASSERTS are
+# enabled, it will fail with an ASSERT on the first filter action.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} = 'FAIL';
 
 # **BOOLEAN**

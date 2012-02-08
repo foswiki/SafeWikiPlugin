@@ -135,15 +135,11 @@ sub _filterHandlers {
 
 sub _filterURIs {
     my ( $this, $tag, $filter ) = @_;
-    print STDERR "Inse[ecy $tag\n";
     if ( exists $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Tags}{$tag} ) {
-    print STDERR "hastabs $tag\n";
         foreach
           my $attr ( @{ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Tags}{$tag} } )
         {
-    print STDERR "checkattr $attr\n";
             if ( defined( $this->{attrs}->{$attr} ) ) {
-    print STDERR "hasa $attr\n";
                 $this->{attrs}->{$attr} = &$filter( $this->{attrs}->{$attr} );
                 ASSERT( defined $this->{attrs}->{$attr} ) if DEBUG;
             }

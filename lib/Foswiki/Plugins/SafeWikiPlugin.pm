@@ -17,7 +17,6 @@ our %FILTERIN;
 our %FILTEROUT;
 our $parser;
 
-my $action;
 my $web;
 my $topic;
 
@@ -32,13 +31,13 @@ sub initPlugin {
         $parser = new Foswiki::Plugins::SafeWikiPlugin::Parser();
     }
 
-    $action = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} || 'WARN';
+    $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} ||= 'FAIL';
 
     return $parser ? 1 : 0;
 }
 
-my $CONDITIONAL_IF    = "{\0";
-my $CONDITIONAL_ENDIF = "\0}";
+my $CONDITIONAL_IF    = "C\0NDITI\0N";
+my $CONDITIONAL_ENDIF = "COND\1TI\1N";
 
 # Handle the complete HTML page about to be sent to the browser
 sub completePageHandler {
@@ -69,16 +68,17 @@ sub completePageHandler {
 	    $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
     };
     if ($@) {
-	print STDERR
-	    "SAFEWIKI: exception while processing\n $@\n";
 	if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN' ) {
+	    print STDERR
+		"SAFEWIKI: exception while processing\n $@\n";
 	    $_[0] = $holdHTML;
 	} else {
-	    # FAIL
 	    my $e = $@;
 	    $_[0] = Foswiki::Func::loadTemplate('safewikierror') ||
 		"Error loading safewiki error page. %EXCEPTION%";
 	    $_[0] =~ s/%EXCEPTION%/$e/;
+	    ASSERT(0, "SAFEWIKI: FAIL $e") if DEBUG &&
+		$Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
 	}
     }
 
@@ -113,44 +113,45 @@ sub _filter {
     return 1;
 }
 
+# Something was disarmed; either warn or error out. If DEBUG is enabled,
+# raise an ASSERT.
+sub _report {
+    my $m = shift;
+    $m = "SafeWikiPlugin: $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action}: "
+	. $m . " on "
+	. ($ENV{REQUEST_URI} || 'command line')
+	. ($ENV{QUERY_STRING} || '');
+    ASSERT(0, $m)
+	if DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
+    Foswiki::Func::writeWarning($m);
+    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN';
+}
+
 sub _filterInline {
     my $code = shift;
     return '' unless defined $code && length($code);
-    my $ok = _filter( $code, 'Inline' );
-    return $code if ($ok);
-    Foswiki::Func::writeWarning(
-            "SafeWikiPlugin: $action: Disarmed inline '$code' on "
-          . $ENV{REQUEST_URI}
-          . $ENV{QUERY_STRING} );
-    return $code if ( $action eq 'WARN' );
-    return '';
+    return $code if _filter( $code, 'Inline' );
+    return $code if _report("Disarmed inline '$code'");
+    $code =~ s/<!--|-->/#/gs;
+    return '<!-- Inline code disarmed by SafeWikiPlugin: $code -->';
 }
 
 sub _filterURI {
     my $uri = shift;
 
-    my $ok = _filter( $uri, 'URI' );
-    return $uri if ($ok);
-    Foswiki::Func::writeWarning(
-            "SafeWikiPlugin: $action: Disarmed URI '$uri' on "
-          . $ENV{REQUEST_URI}
-          . $ENV{QUERY_STRING} );
-    return $uri if ( $action eq 'WARN' );
-    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI}
-      || 'URI filtered by SafeWikiPlugin';
+    return $uri if _filter( $uri, 'URI' );
+    return $uri if _report("Disarmed URI '$uri'");
+    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI} ||
+	'URI filtered by SafeWikiPlugin';
 }
 
 sub _filterHandler {
     my $code = shift;
     return '' unless defined $code && length($code);
-    my $ok = _filter( $code, 'Handler' );
-    return $code if ($ok);
-    Foswiki::Func::writeWarning(
-            "SafeWikiPlugin: $action: Disarmed on* '$code' on "
-          . $ENV{REQUEST_URI}
-          . $ENV{QUERY_STRING} );
-    return $code if ( $action eq 'WARN' );
-    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler};
+    return $code if _filter( $code, 'Handler' );
+    return $code if _report("Disarmed on* '$code'");
+    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} ||
+	'/*Handler disarmed by SafeWikiPlugin*/';
 }
 
 1;
