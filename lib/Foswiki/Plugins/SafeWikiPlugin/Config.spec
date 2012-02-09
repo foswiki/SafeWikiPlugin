@@ -39,17 +39,24 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} = [
           'ftLypjekDf5EqaqMbFgFxw',
           'iIkg+VVDLj+0AxkTEDG4kA',
           'JqTv3srxhdRqiFUpmUL2Zw',
-          'JrA0E4cUoMgNi7GbI94ZAg',
           '/RYNq/yniRZAV1gp1+3fBQ',
           'SmxhyJWfKRDLMhDEew0tZg',
           'soagFnGW4IyP2ptdZlx9Fg',
           'wA6gF/AdfUdn3t0HILlUlg',
           'xGF5lh4U0hW2a5wr6j+Gog',
-          'xxL+zs2PQUpJh036CpM7lg',
           'z3Rea3lLhcnPpgByI2Zjtg',
           'zaUbpMvbZdvs7eck11IwwA',
           'zfA8ivIe7u/Ag5UNFpIcRw',
           '+zrQyf8aaXWnB+M/GXBvvw',
+ # Signatures for Foswiki 1.1.3 javascript
+          'of8+OSdMT8GH7pDjlxj1WQ',
+          'xlIE+D9nDhn7D0vUBPrSPg',
+          'EtiWFyrKBBWi7Z/1QS5j+w',
+          'q7owQkia4PUohVYy7suRzw',
+          'uAd9ZustXM3quTHwg10pTw',
+ # Signatues for Foswiki 1.1.2 javascript
+          'YSnsdlI4pRfs/da7u6codQ',
+
         ];
 
 # **STRING 60**
