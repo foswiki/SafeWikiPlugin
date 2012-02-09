@@ -15,6 +15,28 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} = 'FAIL';
 # by a hacker.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity} = 0;
 
+#---+++ Signatures
+# **PERL**
+# A perl list consisting of MD5 based signatures of inline script code that may
+# appear anywhere in a topic, including as event handlers, script tags, or added
+# with the %ADDTO macros.   The default covers inline scripts used in Foswiki 1.1.4
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} = [
+          'QJ2IWibKzV4YoNwo4C9knA',
+          'AnhTto6hzF0vJ3OXrtyEhQ',
+          'ftLypjekDf5EqaqMbFgFxw',
+          'xGF5lh4U0hW2a5wr6j+Gog',
+          'GlsL99QyrjrFent3zxoMDw',
+          'xxL+zs2PQUpJh036CpM7lg',
+          'd5ClsIZPk1lhgKvpZWfGpg',
+        ];
+
+# **STRING 60**
+# Optional topic containing a list of signatures merged with the above list.
+# The plugin only uses the first column of the table found in this topic.
+# See System.SafeWikiSignatures for an example.  <b>If topic based signatures
+# are used it is critical that this topic cannot be modified by unauthorized users.
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} = '';
+
 #---+++ Event Handlers
 # **PERL**
 # Array of perl regular expressions, one of which must match the value

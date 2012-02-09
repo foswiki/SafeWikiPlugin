@@ -4,6 +4,7 @@ package Foswiki::Plugins::SafeWikiPlugin;
 use strict;
 use Assert;
 use Error ':try';
+use Digest::MD5 qw(md5_base64);
 
 use Foswiki::Plugins::SafeWikiPlugin::Parser ();
 
@@ -16,6 +17,7 @@ our $NO_PREFS_IN_TOPIC = 1;
 our %FILTERIN;
 our %FILTEROUT;
 our $parser;
+our %SIGNATURES;
 
 my $web;
 my $topic;
@@ -33,6 +35,13 @@ sub initPlugin {
 
     $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} ||= 'FAIL';
 
+    unless ( %SIGNATURES ) {
+        foreach my $sig ( @{$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList}} ) {
+            #print STDERR "Adding $sig";
+            $SIGNATURES{$sig} = 1;
+        }
+    }
+
     return $parser ? 1 : 0;
 }
 
@@ -45,6 +54,15 @@ sub completePageHandler {
     #my($html, $httpHeaders) = @_;
 
     return unless $_[1] =~ m#^Content-type: text/html#mi;
+
+    # Some ajax requests fetch text without being wrapped in <html>..</html>
+    # It results in a parser error: Unexpected leaf: 0:  If the tags are missing,
+    # wrap text in <html> tags so that the parser will function on html segments
+    my $insertHtml = 0;
+    unless ( $_[0] =~ m/<html\b/ ) {
+        $insertHtml = 1;
+        $_[0] = '<html>' . $_[0] . '</html>';
+    }
 
     my @condifs;
 
@@ -68,26 +86,39 @@ sub completePageHandler {
 	    $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
     };
     if ($@) {
-	if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN' ) {
-	    print STDERR
-		"SAFEWIKI: exception while processing\n $@\n";
-	    $_[0] = $holdHTML;
-	} else {
-	    my $e = $@;
-	    $_[0] = Foswiki::Func::loadTemplate('safewikierror') ||
-		"Error loading safewiki error page. %EXCEPTION%";
-	    $_[0] =~ s/%EXCEPTION%/$e/;
-	    ASSERT(0, "SAFEWIKI: FAIL $e") if DEBUG &&
-		$Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
-	}
+        if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN' ) {
+            print STDERR
+            "SAFEWIKI: exception while processing\n $@\n";
+            $_[0] = $holdHTML;
+        } else {
+            my $e = $@;
+            $_[0] = Foswiki::Func::loadTemplate('safewikierror') ||
+            "Error loading safewiki error page. %EXCEPTION%";
+            $_[0] =~ s/%EXCEPTION%/$e/;
+            ASSERT(0, "SAFEWIKI: FAIL $e") if DEBUG &&
+            $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
+        }
     }
 
     $_[0] =~
 s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<![endif]-->/gs;
+
+    # unwrap the text if we inserted the <html> tags.
+    if ($insertHtml) {
+         $_[0] =~ s/^<html>//;
+         $_[0] =~ s/<\/html>$//;
+    }
 }
 
 sub _filter {
     my ( $code, $type ) = @_;
+
+    unless ( $type eq 'URI' ) {
+        my $sig = md5_base64($code);
+        print STDERR "MATCH $sig\n" if ($SIGNATURES{$sig});
+        return 1 if ($SIGNATURES{$sig});
+        print STDERR  md5_base64($code) . "($code) ($type) MD5 \n";
+    }
 
     if ( scalar( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"} || '' ) )
     {
