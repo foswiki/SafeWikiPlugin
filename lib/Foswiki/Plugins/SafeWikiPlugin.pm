@@ -147,13 +147,16 @@ sub _filter {
 # Something was disarmed; either warn or error out. If DEBUG is enabled,
 # raise an ASSERT.
 sub _report {
-    my $m = shift;
+    my ($m, $code) = @_;
     $m = "SafeWikiPlugin: $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action}: "
 	. $m . " on "
 	. ($ENV{REQUEST_URI} || 'command line')
 	. ($ENV{QUERY_STRING} || '');
-    ASSERT(0, $m)
-	if DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
+    if (DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT') {
+	$code = md5_base64($code) . ") $code";
+	ASSERT(0, $m . " ($code")
+    }
+    $m .= "\n$code";
     Foswiki::Func::writeWarning($m);
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN';
 }
@@ -162,7 +165,7 @@ sub _filterInline {
     my $code = shift;
     return '' unless defined $code && length($code);
     return $code if _filter( $code, 'Inline' );
-    return $code if _report("Disarmed inline '$code'");
+    return $code if _report("Disarmed inline", $code);
     $code =~ s/<!--|-->/#/gs;
     return '<!-- Inline code disarmed by SafeWikiPlugin: $code -->';
 }
@@ -171,7 +174,7 @@ sub _filterURI {
     my $uri = shift;
 
     return $uri if _filter( $uri, 'URI' );
-    return $uri if _report("Disarmed URI '$uri'");
+    return $uri if _report("Disarmed URI", $uri);
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI} ||
 	'URI filtered by SafeWikiPlugin';
 }
@@ -180,7 +183,7 @@ sub _filterHandler {
     my $code = shift;
     return '' unless defined $code && length($code);
     return $code if _filter( $code, 'Handler' );
-    return $code if _report("Disarmed on* '$code'");
+    return $code if _report("Disarmed on*", $code);
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} ||
 	'/*Handler disarmed by SafeWikiPlugin*/';
 }

@@ -48,6 +48,7 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} = [
           'zaUbpMvbZdvs7eck11IwwA',
           'zfA8ivIe7u/Ag5UNFpIcRw',
           '+zrQyf8aaXWnB+M/GXBvvw',
+	  '+WUoeOHoF2+XW//F+NdrgA', # System.SiteChanges
  # Signatures for Foswiki 1.1.3 javascript
           'of8+OSdMT8GH7pDjlxj1WQ',
           'xlIE+D9nDhn7D0vUBPrSPg',
