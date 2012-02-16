@@ -1,6 +1,7 @@
 # Release manifest for SafeWikiPlugin
 data/System/SafeWikiPlugin.txt 0644 Documentation
 data/System/SafeWikiSignatures.txt 0644 Documentation
+data/System/SafeWikiSignaturesTemplate.txt 0644 Documentation
 lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/Enabled.pm 0644
 lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/SafeURI.pm 0644
 lib/Foswiki/Configure/Checkers/Plugins/SafeWikiPlugin/UnsafeURI.pm 0644
