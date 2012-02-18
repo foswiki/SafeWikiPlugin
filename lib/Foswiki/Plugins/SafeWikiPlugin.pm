@@ -40,9 +40,26 @@ sub initPlugin {
             #print STDERR "Adding $sig";
             $SIGNATURES{$sig} = 1;
         }
+
+        if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} ) {
+            my ( $sigWeb, $sigTopic) = Foswiki::Func::normalizeWebTopicName('', $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic});
+            my ($meta, $text) = Foswiki::Func::readTopic( $sigWeb, $sigTopic );
+            if ( $text ) {
+               $text =~ s/^\|\s?(.*?)\s?\|/&_addMD5($1)/msge;
+            }
+        }
     }
 
     return $parser ? 1 : 0;
+}
+
+sub _addMD5 {
+    my $md5 = shift;
+    if ( length($md5) eq 22 ) {
+        print STDERR "Found $md5\n" if $md5;
+        $SIGNATURES{$md5} = 1;
+    }
+    return '';
 }
 
 my $CONDITIONAL_IF    = "C\0NDITI\0N";
@@ -115,9 +132,9 @@ sub _filter {
 
     unless ( $type eq 'URI' ) {
         my $sig = md5_base64($code);
-        print STDERR "MATCH $sig\n" if ($SIGNATURES{$sig});
+        print STDERR "SWP: $web.$topic: MATCH $sig\n" if ($SIGNATURES{$sig});
         return 1 if ($SIGNATURES{$sig});
-        print STDERR  md5_base64($code) . "($code) ($type) MD5 \n";
+        print STDERR "SWP: $web.$topic: " . md5_base64($code) . "($code) ($type) MD5 \n";
     }
 
     if ( scalar( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"} || '' ) )
