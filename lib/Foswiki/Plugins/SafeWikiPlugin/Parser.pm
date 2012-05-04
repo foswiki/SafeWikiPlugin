@@ -16,6 +16,7 @@ use constant TRACE_OPEN_CLOSE => 0;
 # nested. Autoclose triggers when a second tag of the same type is
 # seen without the first tag being closed.
 my %openautoclose = map { ( $_, 1 ) } qw( li td th tr);
+
 # Support silent autoclose of tags that are open when another close
 # tag is seen that doesn't match
 my %closeautoclose = map { ( $_, 1 ) } qw( img input );
@@ -97,19 +98,22 @@ sub _openTag {
 sub _closeTag {
     my ( $this, $tag ) = @_;
 
-    print STDERR ( ' ' x ( scalar @{ $this->{stack} } - 1) )
+    print STDERR ( ' ' x ( scalar @{ $this->{stack} } - 1 ) )
       . "close: "
       . ( $tag || 'unknown' ) . "\n"
       if TRACE_OPEN_CLOSE;
-    while ( $this->{stackTop} && $this->{stackTop}->{tag} ne $tag
-	&& $closeautoclose{$this->{stackTop}->{tag}} ) {
-        $this->_apply($this->{stackTop}->{tag});
+    while ($this->{stackTop}
+        && $this->{stackTop}->{tag} ne $tag
+        && $closeautoclose{ $this->{stackTop}->{tag} } )
+    {
+        $this->_apply( $this->{stackTop}->{tag} );
     }
     if ( $this->{stackTop} && $this->{stackTop}->{tag} eq $tag ) {
         $this->_apply($tag);
     }
     elsif ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity} ) {
-        die "SafeWikiPlugin: HTML syntax error: Unclosed <$this->{stackTop}->{tag} at </$tag\n"
+        die
+"SafeWikiPlugin: HTML syntax error: Unclosed <$this->{stackTop}->{tag} at </$tag\n"
           . $this->stringify();
     }
     else {
@@ -142,8 +146,8 @@ sub _text {
 
 sub _comment {
     my ( $this, $text ) = @_;
-    if ($text =~ /(<!--\[if [^]]*\]>)|<!\[endif\]-->/) {
-	die $text;
+    if ( $text =~ /(<!--\[if [^]]*\]>)|<!\[endif\]-->/ ) {
+        die $text;
     }
 }
 
