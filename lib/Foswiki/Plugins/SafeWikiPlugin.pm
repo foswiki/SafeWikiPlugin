@@ -35,23 +35,17 @@ sub initPlugin {
 
     $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} ||= 'FAIL';
 
-    unless (%SIGNATURES) {
-        foreach my $sig (
-            @{ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} } )
-        {
-
+    unless ( %SIGNATURES ) {
+        foreach my $sig ( @{$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList}} ) {
             #print STDERR "Adding $sig";
             $SIGNATURES{$sig} = 1;
         }
 
         if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} ) {
-            my ( $sigWeb, $sigTopic ) =
-              Foswiki::Func::normalizeWebTopicName( '',
-                $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} );
-            my ( $meta, $text ) =
-              Foswiki::Func::readTopic( $sigWeb, $sigTopic );
-            if ($text) {
-                $text =~ s/^\|\s?(.*?)\s?\|/&_addMD5($1)/msge;
+            my ( $sigWeb, $sigTopic) = Foswiki::Func::normalizeWebTopicName('', $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic});
+            my ($meta, $text) = Foswiki::Func::readTopic( $sigWeb, $sigTopic );
+            if ( $text ) {
+               $text =~ s/^\|\s?(.*?)\s?\|/&_addMD5($1)/msge;
             }
         }
     }
@@ -78,9 +72,9 @@ sub completePageHandler {
 
     return unless $_[1] =~ m#^Content-type: text/html#mi;
 
-   # Some ajax requests fetch text without being wrapped in <html>..</html>
-   # It results in a parser error: Unexpected leaf: 0:  If the tags are missing,
-   # wrap text in <html> tags so that the parser will function on html segments
+    # Some ajax requests fetch text without being wrapped in <html>..</html>
+    # It results in a parser error: Unexpected leaf: 0:  If the tags are missing,
+    # wrap text in <html> tags so that the parser will function on html segments
     my $insertHtml = 0;
     unless ( $_[0] =~ m/<html\b/ ) {
         $insertHtml = 1;
@@ -104,23 +98,22 @@ sub completePageHandler {
 
     my $holdHTML = $_[0];
     eval {
-        my $tree = $parser->parseHTML( $_[0] );
-        $_[0] =
-          $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
+	my $tree = $parser->parseHTML( $_[0] );
+	$_[0] =
+	    $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
     };
     if ($@) {
         if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN' ) {
-            print STDERR "SAFEWIKI: exception while processing\n $@\n";
+            print STDERR
+            "SAFEWIKI: exception while processing\n $@\n";
             $_[0] = $holdHTML;
-        }
-        else {
+        } else {
             my $e = $@;
-            $_[0] = Foswiki::Func::loadTemplate('safewikierror')
-              || "Error loading safewiki error page. %EXCEPTION%";
+            $_[0] = Foswiki::Func::loadTemplate('safewikierror') ||
+            "Error loading safewiki error page. %EXCEPTION%";
             $_[0] =~ s/%EXCEPTION%/$e/;
-            ASSERT( 0, "SAFEWIKI: FAIL $e" )
-              if DEBUG
-                  && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
+            ASSERT(0, "SAFEWIKI: FAIL $e") if DEBUG &&
+            $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT';
         }
     }
 
@@ -129,8 +122,8 @@ s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<![endif]-->/gs;
 
     # unwrap the text if we inserted the <html> tags.
     if ($insertHtml) {
-        $_[0] =~ s/^<html>//;
-        $_[0] =~ s/<\/html>$//;
+         $_[0] =~ s/^<html>//;
+         $_[0] =~ s/<\/html>$//;
     }
 }
 
@@ -139,11 +132,9 @@ sub _filter {
 
     unless ( $type eq 'URI' ) {
         my $sig = md5_base64($code);
-        print STDERR "SWP: $web.$topic: MATCH $sig\n" if ( $SIGNATURES{$sig} );
-        return 1 if ( $SIGNATURES{$sig} );
-        print STDERR "SWP: $web.$topic: "
-          . md5_base64($code)
-          . "($code) ($type) MD5 \n";
+        print STDERR "SWP: $web.$topic: MATCH $sig\n" if ($SIGNATURES{$sig});
+        return 1 if ($SIGNATURES{$sig});
+        print STDERR "SWP: $web.$topic: " . md5_base64($code) . "($code) ($type) MD5 \n";
     }
 
     if ( scalar( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"} || '' ) )
@@ -173,15 +164,14 @@ sub _filter {
 # Something was disarmed; either warn or error out. If DEBUG is enabled,
 # raise an ASSERT.
 sub _report {
-    my ( $m, $code ) = @_;
-    $m =
-        "SafeWikiPlugin: $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action}: " 
-      . $m . " on "
-      . ( $ENV{REQUEST_URI}  || 'command line' )
-      . ( $ENV{QUERY_STRING} || '' );
-    if ( DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT' ) {
-        $code = md5_base64($code) . ") $code";
-        ASSERT( 0, $m . " ($code" );
+    my ($m, $code) = @_;
+    $m = "SafeWikiPlugin: $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action}: "
+	. $m . " on "
+	. ($ENV{REQUEST_URI} || 'command line')
+	. ($ENV{QUERY_STRING} || '');
+    if (DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT') {
+	$code = md5_base64($code) . ") $code";
+	ASSERT(0, $m . " ($code")
     }
     $m .= "\n$code";
     Foswiki::Func::writeWarning($m);
@@ -192,7 +182,7 @@ sub _filterInline {
     my $code = shift;
     return '' unless defined $code && length($code);
     return $code if _filter( $code, 'Inline' );
-    return $code if _report( "Disarmed inline", $code );
+    return $code if _report("Disarmed inline", $code);
     $code =~ s/<!--|-->/#/gs;
     return '<!-- Inline code disarmed by SafeWikiPlugin: $code -->';
 }
@@ -201,18 +191,18 @@ sub _filterURI {
     my $uri = shift;
 
     return $uri if _filter( $uri, 'URI' );
-    return $uri if _report( "Disarmed URI", $uri );
-    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI}
-      || 'URI filtered by SafeWikiPlugin';
+    return $uri if _report("Disarmed URI", $uri);
+    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI} ||
+	'URI filtered by SafeWikiPlugin';
 }
 
 sub _filterHandler {
     my $code = shift;
     return '' unless defined $code && length($code);
     return $code if _filter( $code, 'Handler' );
-    return $code if _report( "Disarmed on*", $code );
-    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler}
-      || '/*Handler disarmed by SafeWikiPlugin*/';
+    return $code if _report("Disarmed on*", $code);
+    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} ||
+	'/*Handler disarmed by SafeWikiPlugin*/';
 }
 
 1;
