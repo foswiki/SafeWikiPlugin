@@ -13,18 +13,13 @@ sub check {
     my $warnings;
     my $defaultUrlHost = $Foswiki::cfg{DefaultUrlHost};
     my $scriptUrlPath  = $Foswiki::cfg{ScriptUrlPath};
+    my $viewUrlPath    = $Foswiki::cfg{ScriptUrlPaths}{view};
 
     if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled} ) {
         if ( $Foswiki::cfg{INCLUDE}{AllowURLs} ) {
             $warnings .= $this->WARN(<<'HERE');
 {INCLUDE}{AllowURLs} is true, which allows topic contributors to
 <code>%INCLUDE%</code> content from arbitrary URLs.
-HERE
-        }
-        if ( $Foswiki::cfg{AllowInlineScript} ) {
-            $warnings .= $this->WARN(<<'HERE');
-{AllowInlineScript} is true, which allows topic contributors to embed
-arbitrary Javascript.
 HERE
         }
         if ( $Foswiki::cfg{AllowRedirectUrl} ) {
@@ -38,6 +33,14 @@ like this</a>.
 HERE
         }
     }
+    else {
+        $warnings .= $this->WARN(<<"HERE");
+Turning on SafeWikiPlugin is strongly recommended because without it,
+Foswiki cannot reliably protect your users against cross-site scripting. See the
+<a href="$defaultUrlHost$viewUrlPath/System/SafeWikiPlugin">plugin topic</a>
+for more information.
+HERE
+    }
 
     return $warnings;
 }
@@ -47,7 +50,7 @@ __DATA__
 #
 # Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 #
-# Copyright (C) 2009 Foswiki Contributors. All Rights Reserved.
+# Copyright (C) 2009-2013 Foswiki Contributors. All Rights Reserved.
 # Foswiki Contributors are listed in the AUTHORS file in the root
 # of this distribution. NOTE: Please extend that file, not this notice.
 #

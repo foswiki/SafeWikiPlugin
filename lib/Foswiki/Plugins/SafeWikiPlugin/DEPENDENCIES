@@ -1,2 +1,4 @@
 # Dependencies for SafeWikiPlugin
+Digest::HMAC_SHA1,>=0,cpan,Required
+Digest::SHA,>=0,cpan,Required
 HTML::Parser,>=0,cpan,Required

@@ -15,89 +15,57 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} = 'FAIL';
 # by a hacker.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{CheckPurity} = 0;
 
-#---+++ Signatures
-# **PERL**
-# A perl list consisting of MD5 based signatures of inline script code that may
-# appear anywhere in a topic, including as event handlers, script tags, or added
-# with the %ADDTO macros.   The default covers inline scripts used in Foswiki 1.1.4
-$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} = [
-          '2Jpk3RVVNT3hBHyjYhbbCQ',
-          '4oSmQfCDgWT55P3UGgv+OA',
-          '4PkSB+IE2tVosMVmZw4QlA',
-          '7Ks6aCAX/IRM6+TeajS7TQ',
-          '7qpsUfhWZacx7H0iVvhoLg',
-          'AnhTto6hzF0vJ3OXrtyEhQ',
-          'AsAR/5iiim0S99gZTxptBQ',
-          'Be+iJp0ZnMxx52E0P6YAhQ',
-          'cvV6Chg3lK+IdfwJjZrNjw',
-          'd5ClsIZPk1lhgKvpZWfGpg',
-          'dMET8vfHCRka2ui+FA1kVA',
-          'EanI43tB93UorXxc/lF1rQ',
-          'EnNdNZTttZJmWPNOKC5PXw',
-          'eqMbgt6hy9EWX4AoZDsPvw',
-          'FHV/t3zQBC7L6FjefOiswA',
-          'ftLypjekDf5EqaqMbFgFxw',
-          'iIkg+VVDLj+0AxkTEDG4kA',
-          'JqTv3srxhdRqiFUpmUL2Zw',
-          '/RYNq/yniRZAV1gp1+3fBQ',
-          'SmxhyJWfKRDLMhDEew0tZg',
-          'soagFnGW4IyP2ptdZlx9Fg',
-          'wA6gF/AdfUdn3t0HILlUlg',
-          'xGF5lh4U0hW2a5wr6j+Gog',
-          'z3Rea3lLhcnPpgByI2Zjtg',
-          'zaUbpMvbZdvs7eck11IwwA',
-          'zfA8ivIe7u/Ag5UNFpIcRw',
-          '+zrQyf8aaXWnB+M/GXBvvw',
-	  '+WUoeOHoF2+XW//F+NdrgA', # System.SiteChanges
- # Signatures for Foswiki 1.1.3 javascript
-          'of8+OSdMT8GH7pDjlxj1WQ',
-          'xlIE+D9nDhn7D0vUBPrSPg',
-          'EtiWFyrKBBWi7Z/1QS5j+w',
-          'q7owQkia4PUohVYy7suRzw',
-          'uAd9ZustXM3quTHwg10pTw',
- # Signatues for Foswiki 1.1.2 javascript
-          'YSnsdlI4pRfs/da7u6codQ',
+# **STRING**
+# Choose a secret(!) key to be used for signing/verifying code snippets.
+# If anyone can guess or bruteforce it, it'll make this plugin completely
+# useless.
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SecretKey} = 'this is a bad key';
 
-        ];
+# **PERL**
+# A perl list consisting of SHA-256 based signatures of inline script code that
+# may appear anywhere in a topic, including as event handlers, script tags, or
+# added with the %ADDTO macros.
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} = [];
 
 # **STRING 60**
 # Optional topic containing a list of signatures merged with the above list.
-# The plugin only uses the first column of the table found in this topic.
-# See System.SafeWikiSignatures for an example.  <b>If topic based signatures
-# are used it is critical that this topic cannot be modified by unauthorized users.
+# The plugin only uses the first column of the table found in this topic.  See
+# System.SafeWikiSignatures for an example.  <b>If topic based signatures are
+# used it is critical that this topic cannot be modified by unauthorized
+# users.</b>
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} = '';
 
 #---+++ Event Handlers
 # **PERL**
 # Array of perl regular expressions, one of which must match the value
-# of an on* handler, or it will be filtered. The default permits a simple
-# function call; for example:
-# <tt>javascript: fn(param1, "param2")</tt>
+# of an on* handler, or it will be filtered. Here's an expression you can add
+# to permit a simple function call:
+# <tt>'^(\\s*javascript:)?(\\s*return)?\\s*\\w+\\s*\\(((\\w+|"[^"\\\\]*"|\'[^\'\\\\]\')(\\s*,\\s*(\\w+|"[^"\\\\]*"|\'[^\'\\\\]\'))*|\\s*)?\\)[\\s;]*(return\\s+(\\w+|"[^"\\\\]*"|\'[^\'\\\\]*\')[\\s;]*)?$'</tt>
+# An example of a code snippet that would be accepted:
+# <tt>javascript: fn(param1, param2)</tt>
+# Arbitrary string constants and complex data structures cannot be parsed with
+# regular expressions and hence are not let through. For practicality, a
+# restricted class of string constants that don't contain escaped characters is
+# accepted.
+# Note that accepting function calls like that might compromise the security
+# of SafeWikiPlugin in some cases.
 # You can use other Foswiki::cfg variables in the the strings here.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeHandler} = [
-          '^(\s*javascript:)?(\s*return)?\s*\w+\s*\(((\w+|\'[^\']*\'|"[^"]*")(\s*,\s*(\w+|\'[^\']*\'|"[^"]*"))*|\s*)?\)[\s;]*(return\s+(\w+|\'[^\']*\'|"[^"]*")[\s;]*)?$',
           '^StrikeOne\.submit\(this\);?(document\.loginform\.foswiki_origin\.value\+=window\.location\.hash)?$',
         ];
 
-# **PERL**
-# Array of perl regular expressions. If any of these match the value
-# of an on* handler, it will be filtered. The default exludes use of
-# 'eval' calls.
-# You can use other Foswiki::cfg variables in the the strings here.
-$Foswiki::cfg{Plugins}{SafeWikiPlugin}{UnsafeHandler} = ['\beval\s*\('];
-
 # **STRING 30**
 # String used to replace dodgy handlers.
-$Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} = 'alert("Handler filtered by SafeWikiPlugin")';
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} = '/* Handler filtered by SafeWikiPlugin */';
 
 #---+++ URIs
 # **PERL**
 # HTML tags and attributes that will be URI-filtered by the SafeWikiPlugin.
-# These attributes are filtered if the tag is included in {Plugins}{SafeWikiPlugin}{FilterTags}
-# and the attributes value matches any expression in
-# {Plugins}{SafeWikiPlugin}{UnsafeURI} or fails to match at least one expression
-# in {Plugins}{SafeWikiPlugin}{SafeURI} (if any are defined). The following quick reference lists
-# all the URI attributes on all HTML4 & HTML5 tags, should you want to include any of them.
+# These tag/attribute combinations are filtered if the attribute's value
+# matches any expression in {Plugins}{SafeWikiPlugin}{UnsafeURI} or fails to
+# match at least one expression in {Plugins}{SafeWikiPlugin}{SafeURI} (if any
+# are defined). The following quick reference lists all the URI attributes on
+# all HTML4 & HTML5 tags, should you want to include any of them.
 # <pre>
 # A          => [ 'href' ],
 # APPLET     => [ 'archive', 'code', 'codebase' ],
@@ -122,7 +90,7 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} = 'alert("Handler filtered
 # SOURCE     => [ 'src' ],
 # VIDEO      => [ 'src', 'poster' ]
 # </pre>
-$Foswiki::cfg{Plugins}{SafeWikiPlugin}{Tags} = {
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{URIAttributes} = {
     APPLET     => [ 'archive', 'code', 'codebase' ],
     EMBED      => [ 'pluginspace', 'pluginurl', 'src' ],
     OBJECT     => [ 'archive', 'codebase' ],
@@ -137,11 +105,6 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Tags} = {
 # <code>{PermittedRedirectHostUrls}</code> in your configuration.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeURI} = ['^(|http://(localhost|127\.0\.0\.1)(:\d*)?|$Foswiki::cfg{DefaultUrlHost})/*$Foswiki::cfg{PubUrlPath}/+$Foswiki::cfg{SystemWebName}/+'];
 
-# **PERL**
-# Array of perl regular expressions. If any of these match
-# a URI used in a Foswiki page it will be filtered.
-$Foswiki::cfg{Plugins}{SafeWikiPlugin}{UnsafeURI} = [];
-
 # **STRING 30**
 # String used to replace dodgy URIs. Can be a URI if you want.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI} = 'URI filtered by SafeWikiPlugin';
@@ -151,7 +114,10 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmURI} = 'URI filtered by SafeWikiPlu
 # Array of perl regular expressions, one of which must match the contents
 # of an inline script tag or it will be filtered. The default permits a simple
 # Allows the TinyMCEPlugin to provide its inline init code.
-$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeInline} = [
-          '^\s?FoswikiTiny\.init.*'
-        ];
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeInline} = [];
+
+#---+++ Other tags
+# **STRING**
+# Comma-separated list of tags to completely remove from the output.
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{StripTags} = "FRAME,IFRAME";
 

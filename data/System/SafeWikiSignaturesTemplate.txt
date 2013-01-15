@@ -4,7 +4,7 @@
 
 %TMPL:DEF{FORM:jssignature}%
 <blockquote class="foswikiHelp">
-Use this form to add new signatures and their descriptions to the above table of authorized signatures.  Enter the 22 character MD5 signature and an optional description, and press the [Add Signature] button.
+Use this form to add new signatures and their descriptions to the above table of authorized signatures.  Enter the 43 character SHA-256 signature and an optional description, and press the [Add Signature] button.
 </blockquote>
 <form method="post" action="%SCRIPTURL{rest}%/CommentPlugin/comment" enctype="application/x-www-form-urlencoded" name="jssignaturecomment" id="jssignaturecomment">
 <input type="hidden" name="endPoint" value="%BASEWEB%.%BASETOPIC%" />

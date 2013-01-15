@@ -4,9 +4,15 @@ package Foswiki::Plugins::SafeWikiPlugin;
 use strict;
 use Assert;
 use Error ':try';
-use Digest::MD5 qw(md5_base64);
+use Digest::SHA qw(sha256_base64);
+use Digest::HMAC_SHA1;
 
-use Foswiki::Plugins::SafeWikiPlugin::Parser ();
+use Foswiki::Meta ();
+use Foswiki::Macros::ADDTOZONE;
+use Foswiki::Plugins::SafeWikiPlugin::Signatures ();
+use Foswiki::Plugins::SafeWikiPlugin::Parser     ();
+use Foswiki::Plugins::SafeWikiPlugin::CoreHooks  ();
+use Foswiki::Sandbox                             ();
 
 our $VERSION = '$Rev$';
 our $RELEASE = '2.0.0';
@@ -17,58 +23,32 @@ our $NO_PREFS_IN_TOPIC = 1;
 our %FILTERIN;
 our %FILTEROUT;
 our $parser;
-our %SIGNATURES;
+our %STRIP_TAGS;
 
-my $web;
-my $topic;
+sub earlyInitPlugin {
+    return if !$Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled};
+    Foswiki::Plugins::SafeWikiPlugin::CoreHooks::hook();
+}
 
 sub initPlugin {
-
-    #my( $topic, $web, $user, $installWeb ) = @_;
-
-    $topic = shift;
-    $web   = shift;
-
     unless ($parser) {
         $parser = new Foswiki::Plugins::SafeWikiPlugin::Parser();
     }
 
     $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} ||= 'FAIL';
+    Foswiki::Plugins::SafeWikiPlugin::Signatures::read();
 
-    unless (%SIGNATURES) {
-        foreach my $sig (
-            @{ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesList} } )
-        {
-            #print STDERR "Adding $sig";
-            $SIGNATURES{$sig} = 1;
-        }
-
-        if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} ) {
-            my ( $sigWeb, $sigTopic ) =
-              Foswiki::Func::normalizeWebTopicName( '',
-                $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SignaturesTopic} );
-            my ( $meta, $text ) =
-              Foswiki::Func::readTopic( $sigWeb, $sigTopic );
-            if ($text) {
-                $text =~ s/^\|\s?(.*?)\s?\|/&_addMD5($1)/msge;
-            }
-        }
+    my $strip_tags = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{StripTags}
+      || "FRAME,IFRAME";
+    foreach my $tag ( split( /\s*,\s*/, $strip_tags ) ) {
+        $STRIP_TAGS{ uc($tag) } = 1;
     }
 
     return $parser ? 1 : 0;
 }
 
-sub _addMD5 {
-    my $md5 = shift;
-    if ( length($md5) eq 22 ) {
-        print STDERR "Found $md5\n" if $md5;
-        $SIGNATURES{$md5} = 1;
-    }
-    return '';
-}
-
-my $CONDITIONAL_IF    = "C\0NDITI\0N";
-my $CONDITIONAL_ENDIF = "COND\1TI\1N";
+my $CONDITIONAL_IF    = "<!--C\0NDITI\0N-->";
+my $CONDITIONAL_ENDIF = "<!--COND\1T\1ON-->";
 
 # Handle the complete HTML page about to be sent to the browser
 sub completePageHandler {
@@ -76,6 +56,15 @@ sub completePageHandler {
     #my($html, $httpHeaders) = @_;
 
     return unless $_[1] =~ m#^Content-type: text/html#mi;
+
+    # PDF generation fails if we filter it, so don't do that
+    if ( exists $Foswiki::cfg{Plugins}{GenPDFPrincePlugin}{Enabled}
+        && $Foswiki::cfg{Plugins}{GenPDFPrincePlugin}{Enabled} )
+    {
+        my $query = Foswiki::Func::getCgiQuery();
+        my $contenttype = $query->param("contenttype") || 'text/html';
+        return if $contenttype eq 'application/pdf';
+    }
 
    # Some ajax requests fetch text without being wrapped in <html>..</html>
    # It results in a parser error: Unexpected leaf: 0:  If the tags are missing,
@@ -103,9 +92,9 @@ sub completePageHandler {
 
     my $holdHTML = $_[0];
     eval {
-        my $tree = $parser->parseHTML( $_[0] );
+        $parser->parseHTML( $_[0] );
         $_[0] =
-          $tree->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
+          $parser->generate( \&_filterURI, \&_filterHandler, \&_filterInline );
     };
     if ($@) {
         if ( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN' ) {
@@ -126,6 +115,14 @@ sub completePageHandler {
     $_[0] =~
 s/${CONDITIONAL_IF}(\d+);(.*?)$CONDITIONAL_ENDIF/$condifs[$1]$2<![endif]-->/gs;
 
+    # Bring back the zones... we miss them terribly
+    my $session = $Foswiki::Plugins::SESSION;
+    my $topicObject =
+      Foswiki::Meta->load( $session, $session->{webName},
+        $session->{topicName} );
+    Foswiki::Plugins::SafeWikiPlugin::Signatures::unhoist( $_[0],
+        $topicObject );
+
     # unwrap the text if we inserted the <html> tags.
     if ($insertHtml) {
         $_[0] =~ s/^<html>//;
@@ -137,25 +134,11 @@ sub _filter {
     my ( $code, $type ) = @_;
 
     unless ( $type eq 'URI' ) {
-        my $sig = md5_base64($code);
-        print STDERR "SWP: $web.$topic: MATCH $sig\n" if ( $SIGNATURES{$sig} );
-        return 1 if ( $SIGNATURES{$sig} );
-        print STDERR "SWP: $web.$topic: "
-          . md5_base64($code)
-          . "($code) ($type) MD5 \n";
+        return 1
+          if Foswiki::Plugins::SafeWikiPlugin::Signatures::trustedInlineCode(
+            $code);
     }
 
-    if ( scalar( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"} || '' ) )
-    {
-        unless ( defined( $FILTEROUT{$type} ) ) {
-
-            # the eval expands $Foswiki::cfg vars
-            $FILTEROUT{$type} = join( '|',
-                map { s/(\$Foswiki::cfg({.*?})+)/eval($1)/ge; qr/($_)/ }
-                  @{ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Unsafe$type"} } );
-        }
-        return 0 if ( $code =~ /$FILTEROUT{$type}/ );
-    }
     if ( scalar( $Foswiki::cfg{Plugins}{SafeWikiPlugin}{"Safe$type"} || '' ) ) {
         unless ( defined( $FILTERIN{$type} ) ) {
 
@@ -179,8 +162,13 @@ sub _report {
       . ( $ENV{REQUEST_URI}  || 'command line' )
       . ( $ENV{QUERY_STRING} || '' );
     if ( DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT' ) {
-        $code = md5_base64($code) . ") $code";
-        ASSERT( 0, $m . " ($code" );
+        ASSERT( 0,
+                $m
+              . " (SHA: "
+              . Foswiki::Plugins::SafeWikiPlugin::Signatures::getSHA($code)
+              . ", MAC: "
+              . Foswiki::Plugins::SafeWikiPlugin::Signatures::getMAC($code)
+              . ") $code" );
     }
     $m .= "\n$code";
     Foswiki::Func::writeWarning($m);
@@ -192,8 +180,9 @@ sub _filterInline {
     return '' unless defined $code && length($code);
     return $code if _filter( $code, 'Inline' );
     return $code if _report( "Disarmed inline", $code );
-    $code =~ s/<!--|-->/#/gs;
-    return '<!-- Inline code disarmed by SafeWikiPlugin: $code -->';
+    $code =~ s#/\*#/+#gs;
+    $code =~ s#\*/#+/#gs;
+    return "/* Inline code disarmed by SafeWikiPlugin: $code */";
 }
 
 sub _filterURI {
@@ -208,18 +197,20 @@ sub _filterURI {
 sub _filterHandler {
     my $code = shift;
     return '' unless defined $code && length($code);
+    my $type = shift || "on*";
     return $code if _filter( $code, 'Handler' );
-    return $code if _report( "Disarmed on*", $code );
+    return $code if _report( "Disarmed $type", $code );
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler}
-      || '/*Handler disarmed by SafeWikiPlugin*/';
+      || '/*Code removed by SafeWikiPlugin*/';
 }
 
 1;
 __DATA__
 
 Copyright (C) 2007-2009 C-Dot Consultants http://c-dot.co.uk
+Copyright (C) 2013 Modell Aachen GmbH http://modell-aachen.de
 All rights reserved
-Author: Crawford Currie
+Authors: Crawford Currie, Jan Krueger
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License

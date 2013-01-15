@@ -3,6 +3,7 @@
 package Foswiki::Plugins::SafeWikiPlugin::Parser;
 use strict;
 use Assert;
+use Encode       ();
 use HTML::Parser ();
 our @ISA = ('HTML::Parser');
 
@@ -19,7 +20,9 @@ my %openautoclose = map { ( $_, 1 ) } qw( li td th tr);
 
 # Support silent autoclose of tags that are open when another close
 # tag is seen that doesn't match
-my %closeautoclose = map { ( $_, 1 ) } qw( img input );
+my %closeautoclose =
+  map { ( $_, 1 ) }
+  qw( area base basefont br col embed frame hr img input link meta param );
 
 sub new {
     my ($class) = @_;
@@ -43,14 +46,20 @@ sub new {
 sub parseHTML {
     my $this = $_[0];
     $this->_resetStack();
-    $this->utf8_mode() if $Foswiki::cfg{Site}{CharSet} =~ /^utf-8$/i;
+    $this->utf8_mode() if $Foswiki::cfg{Site}{CharSet} =~ /^utf-?8$/i;
 
     # Text still contains <nop> - ignore it
     $this->ignore_tags('nop');
-    $this->parse( $_[1] );
+    $this->parse( Encode::decode( $Foswiki::cfg{Site}{CharSet}, $_[1] ) );
     $this->eof();
     $this->_apply(undef);
     return $this->{stackTop};
+}
+
+sub generate {
+    my $this = shift;
+    my $out  = $this->{stackTop}->generate(@_);
+    return Encode::encode( $Foswiki::cfg{Site}{CharSet}, $out );
 }
 
 sub stringify {
@@ -88,7 +97,8 @@ sub _openTag {
     }
     print STDERR ( ' ' x scalar( @{ $this->{stack} } ) )
       . "open: "
-      . ( $tag || 'unknown' ) . "\n"
+      . ( $tag || 'unknown' )
+      . ( exists( $attrs->{id} ) ? "#$attrs->{id}" : '' ) . "\n"
       if TRACE_OPEN_CLOSE;
     push( @{ $this->{stack} }, $this->{stackTop} ) if $this->{stackTop};
     $this->{stackTop} =
@@ -116,7 +126,7 @@ sub _closeTag {
 "SafeWikiPlugin: HTML syntax error: Unclosed <$this->{stackTop}->{tag} at </$tag\n"
           . $this->stringify();
     }
-    else {
+    elsif ( DEBUG || TRACE_OPEN_CLOSE ) {
         print STDERR "ignoring unmatched close tag: $tag\n";
     }
 }
@@ -148,6 +158,18 @@ sub _comment {
     my ( $this, $text ) = @_;
     if ( $text =~ /(<!--\[if [^]]*\]>)|<!\[endif\]-->/ ) {
         die $text;
+    }
+
+    # Need to let comments through because they contain references
+    # to hoisted code (plus everyone loves comments)
+    my $l = new Foswiki::Plugins::SafeWikiPlugin::Leaf($text);
+    if ( defined $this->{stackTop} ) {
+        die "Unexpected leaf: " . $this->stringify()
+          if $this->{stackTop}->isLeaf();
+        $this->{stackTop}->addChild($l);
+    }
+    else {
+        $this->{stackTop} = $l;
     }
 }
 

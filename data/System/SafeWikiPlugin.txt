@@ -12,11 +12,15 @@ One line description, required for extensions repository catalog.
 
 %TOC%
 
+All of the configuration options below refer to those available in
+=configure= in "Extensions -- SafeWikiPlugin", or
+={Plugins}{SafeWikiPlugin}= in =lib/LocalSite.cfg=.
+
 ---++ What it does
 This plugin helps prevent evil people from using your wiki to mount
 [[http://en.wikipedia.org/wiki/Cross-site_scripting][cross-scripting]]
 attacks. It is intended to:
-   * defuse any raw HTML entered in topics by an attacker,
+   * defuse malicious (or accidentally malformed) raw HTML entered in topics by an attacker,
    * disable script in URL parameters
 
 Cross-scripting attacks don't just affect public wiki sites. For example,
@@ -52,19 +56,195 @@ This software is provided in the hope that it may be useful.
 The authors make no warranty, implied or otherwise, about the
 suitability of this software for safety or security purposes.
 
-The authors shall not in any case be liable for special, incidental,
-consequential, indirect or other similar damages arising from the use
-of this software.
+The authors shall not in any case (except as required by applicable laws) be
+liable for special, incidental, consequential, indirect or other similar
+damages arising from the use of this software.
 
-If in _any_ doubt, do not use it.
+In clearer words: while the authors are confident that the plugin does
+exactly what is documented, we can't make an ironclad guarantee. Additionally,
+the safety checks introduced by !SafeWikiPlugin can be circumvented by
+plugins, by misconfiguration, and by !JavaScript code making use of macros
+without sufficient validation. This plugin does not replace common sense!
+It should prevent attacks out of the box, but additional plugins may weaken
+the protection, so administrators are advised to be careful about installing
+new plugins, signing new !JavaScript code, or making changes to the filter
+expressions in the configuration.
+
+---++ How to authorize/sign !JavaScript code
+
+The easiest way to get script code into the wiki without having to deal with
+signing is to put it in a =.js= file that is included by URL. By default,
+scripts attached in the %SYSTEMWEB% web are considered safe; you can define
+additional safe locations in the configuration. Unsafe locations will, of
+course, be filtered.
+
+---+++ Authorizing static scripts in topics or templates
+
+For good reasons that are a bit complicated to explain, !SafeWikiPlugin can't
+magically exempt certain topics from XSS filtering. Therefore, each individual
+piece of script code has to be authorized explicitly. !SafeWikiPlugin provides
+three ways to do that:
+
+   * an administrator can add a signature to the wiki configuration;
+   * a plugin can include a signature;
+   * script code can be cryptographically authenticated by people who know a secret key (chosen per wiki in =/bin/configure=).
+
+The third option is meant to be used for providing wiki apps that users can
+install without needing administrator rights; for instance, a wiki consultant
+might use their customers' secret keys to distribute pure wiki apps without
+causing any administrative overhead for the customers -- all the customers
+need to do is copy and paste the wiki app's code, and it's already signed so
+!SafeWikiPlugin won't destroy it.
+
+The first two ways use simple SHA-256 signatures of the script code; the third
+way uses a HMAC/SHA-1 hash instead (HMAC means that you can only calculate the
+"right" hash value if you know the secret key). We're going to call these
+hashes *MAC*s from now on.
+
+The two types of hashes are easy to distinguish: while both use a Base64
+encoding and thus look like gibberish, the SHA-256 is 43 characters long
+whereas the MAC is only 27 characters long.
+
+While it's possible to calculate the SHA/MAC values yourself if you want to,
+it's much easier to let !SafeWikiPlugin do it instead. For security reasons,
+console access to the server is required. After writing a piece of
+!JavaScript code and embedding it in a topic or template, just run this from
+within Foswiki's =bin= directory:
+
+<verbatim>
+FOSWIKI_ASSERTS=1 ./view topic=<topic to test> 2>&1 >/dev/null
+</verbatim>
+
+It will display a big error message; at the top of that message, you get the
+SHA/MAC hashes (using the currently configured secret key in the case of MAC).
+
+The section for !SafeWikiPlugin in =/bin/configure= has an option
+={SignaturesList}= where you can add your own signatures, like this:
+
+<verbatim>
+['2rvfFrggTCtyF5WOiTri1gDS8Boibj4Njn0e+VCBmDI',
+    'vLFBaEsZg+AgnWTdBIct8XO/NFeDNlsQjoDGtMPz+ew']
+</verbatim>
+
+Plugins can add signatures by installing a file to a special location. For
+example, !EmptyPlugin might install =lib/Foswiki/Plugins/SafeWikiPlugin/Signatures/EmptyPlugin.pm=.
+This file should contain Perl code and do nothing but return a reference to
+an array of signatures, like this:
+
+<verbatim>
+['2rvfFrggTCtyF5WOiTri1gDS8Boibj4Njn0e+VCBmDI',
+    'vLFBaEsZg+AgnWTdBIct8XO/NFeDNlsQjoDGtMPz+ew'];
+</verbatim>
+
+MACs are simply inserted as a specially crafted !JavaScript comment at the
+very beginning of the inline code, be it a =script= tag, an =on*= attribute,
+or a =javascript:= URL (in that case the comment goes right after the
+=javascript:= part. Here's an example:
+
+<verbatim>
+<script>
+/*safewiki:U2AGOBOv0pY4R4poBM/EXQNRFoE*/alert('This works (if the MAC is correct)');
+</script>
+</verbatim>
+
+---+++ Authorizing dynamically generated or altered code
+
+If you are shipping dynamically generated code with a plugin (example:
+JQueryPlugin's code to make Foswiki preference values available to scripts),
+just embed the code using a call to =Foswiki::addToZone=. It will
+automatically bypass filtering. In addition,
+=Foswiki::Plugins::SafeWikiPlugin::Signatures::permitInlineCode temporarily
+(for the current request) whitelists a piece of code to be used in a handler
+attribute or an inline script tag (as with normal signatures, it only works if
+that piece of code is the exact content of the handler attribute or script
+tag). In either of these cases, it's your responsibility to validate any code
+you add to a page this way.
+
+Alternatively, if that's not an option for some reason or another, you can
+add a signature even for code that contains macros and is embedded in a topic
+or template file. There are a few requirements for making this work:
+
+   * The code must be added to the page with the [[%SYSTEMWEB%.VarADDTOZONE][=ADDTOZONE= macro]].
+   * Macros used within the script code must be escaped (using =$percnt= syntax).
+   * Special syntax must be wrapped around macros used in script code, in order to allow SafeWikiPlugin to verify that, for instance, the expanded macro doesn't break out of a !JavaScript string constant.
+
+The syntax for verifying macro expansions is very simple. You use it to tell
+!SafeWikiPlugin which pattern the expanded macro (the "result") is matched
+against. Any macro that doesn't have such a pattern associated with it, or
+that fails to match the pattern, will not be expanded nor unescaped.
+
+At this point there are two patterns:
+
+   * =identifier= permits an expansion that is made up of nothing but alphanumeric characters and underscores;
+   * =string= permits any character but backslashes and the quotes surrounding the macro.
+
+Matching strings more exactly is not currently implemented, so it's not
+possible to use macros that expand to values containing quotes or backslashes.
+
+Here are examples of how to use the syntax:
+
+<verbatim>
+%ADDTOZONE{"script" id="test" text="
+<script>
+var x = /*safewiki:identifier*/'$percntSPECIALWEB$percnt'/*safewiki:end*/;
+var y = /*safewiki:string*/"$percntBROADCASTMESSAGE$percnt"/*safewiki:end*/;
+var z = 'a'+/*safewiki:string*/'$percntQUERY{\"...\"}$percnt'/*safewiki:end*/;
+</script>
+"}%
+</verbatim>
+
+If the macro expansions are accepted by the patterns (for example,
+=BROADCASTMESSAGE= must not contain double quotes or backslashes, and
+=SPECIALWEB= is restricted to alphanumeric characters and the underscore),
+this will expand to something like the following, in the script zone:
+
+<verbatim>
+<script>
+var x = 'Special';
+var y = "We are currently doing maintenance work on the wiki. Sorry for any inconvenience.";
+var z = 'a'+'(result of query)';
+</script>
+</verbatim>
+
+Please note that these special comments are only recognized if there is no
+space between them and the string constant containing the macro expression,
+and neither may there be anything else in that string constant than the macro
+expression.
+
+Annotating macros is not necessary for a number of standard Foswiki macros
+(e.g. =BASEWEB=, =PUBURL=, =SYSTEMWEB=) -- these have the appropriate types
+pre-defined, so in many cases your script will actually work without adding
+the annotations.
+
+Now that these prerequisites have been fulfilled, all that's left to do is to
+determine the MAC. You can't use exactly the same method as above because the
+assertions are generated _after_ dynamic scripts got their chance, i.e. macros
+have already been expanded.
+
+To tell !SafeWikiPlugin that it should try to protect the zone snippet, add a
+=signature= parameter to the =ADDTOZONE= macro, with any non-empty value. Now,
+the above =./view= command will output something like this somewhere near the
+top:
+
+<verbatim>
+SafeWikiPlugin: SHA <hash> MAC <hash> for this zone content: <unexpanded code>
+</verbatim>
+
+We have to let the ADDTOZONE macro know about that MAC so that SafeWikiPlugin
+won't attempt to filter the zone snippet. That's what the =signature=
+parameter you just read about comes in: just put the MAC in there. Done!
+
+(You could also add the SHA to the list of signatures instead if you prefer.)
 
 ---++ Gory Details
 
----+++ Javascript
-The values of all Javascript on* handlers (such as =onload=, =onmouseover=, =onblur=
-etc) are automatically compared against a list of filter-in regular
-expressions, one of which must match, or the handler will be replaced
-by a disarming string.
+This explains the additional filtering steps _if none of the signatures apply_.
+
+---+++ !JavaScript
+The values of all Javascript on* handlers (such as =onload=, =onmouseover=,
+=onblur= etc) are automatically compared against a list of filter-in regular
+expressions, one of which must match, or the handler will be replaced by a
+disarming string.
 
 By default only simple function calls with atomic parameters are
 permitted in on* handlers. For example:
@@ -76,11 +256,14 @@ filtered out (removed). URIs used in certain parameters are compared
 against a whitelist of filter-in regular expressions, one of which must match
 or the URI will be replaced with a disarming string.
 
+In addition, script snippets interpreted by JQueryPlugin's METADATA plugin
+(notably ={key:value}= constructs in class/data attributes) are filtered in
+the same way.
+
 ---+++ URIs
-The tags filtered, the filter-in regular expressions,
-and the disarming strings are all
-defined using the =configure= interface. See the setup for SafeWikiPlugin
-for more help.
+The tags filtered, the "whitelist" regular expressions, and the placeholder
+string used to mark disarmed code are all defined using the =configure=
+interface. See the setup for SafeWikiPlugin for more help.
 
 ---++ Notes for extensions (Plugins etc) authors
 As mentioned above, there is a risk that use of !SafeWikiPlugin might
@@ -89,10 +272,26 @@ be because you have tried to embed something in the HTML that the
 !SafeWikiPlugin regards as "naughty" - for example, inline script,
 complex expressions in handlers etc.
 
-The way to overcome this is to recode your plugin so that all script tags
-are generated in the HEAD section (using Foswiki::Func::addToHEAD). Handlers
-can still be used, but they cannot be any more complex than a simple call
-to a function.
+The way to overcome this in your plugins is described in the section about
+authorizing dynamically generated code, but for your convenience here's
+something to copy & paste:
+
+---+++ Add code to a zone
+
+<verbatim>
+Foswiki::Func::addToZone("script", "MYZONETHINGY", "my script here", "JQUERYPLUGIN::MYDEPENDENCY");
+</verbatim>
+
+---+++ Add code in an event handler or inline tag
+
+<verbatim>
+my $code = encode_entities("alert(\"This is my shiny code\");");
+if ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled}) {
+    Foswiki::Plugins::SafeWikiPlugin::Signatures::permitInlineCode($code);
+}
+# Presumably added to output later on
+return "<script>$code</script>";
+</verbatim>
  
 ---++ Installation Instructions
 
@@ -102,16 +301,15 @@ All plugin configuration is done through =configure=, in the "Security setup" se
 
 ---++ Plugin Info
 
-Another great Foswiki extension from the <a style="text-decoration:none" href="http://wikiring.com"><img src="%ATTACHURLPATH%/wikiringlogo20x20.png" alt="" /> *WikiRing* </a> - working together to improve your wiki experience!
-
 Sponsors for support and improvements are always welcome.
 
-|  Author(s): | Crawford Currie http://wikiring.com from an original idea by Sven Dowideit http://wikiring.com |
-|  Copyright: | &copy; 2007-2012 C-Dot Consultants http://c-dot.co.uk |
+|  Author(s): | Crawford Currie http://wikiring.com, Jan Krueger (Modell Aachen !GmbH) -- from an original idea by Sven Dowideit http://wikiring.com |
+|  Copyright: | &copy; 2007-2012 C-Dot Consultants http://c-dot.co.uk%BR%&copy; 2012-2013 Modell Aachen !GmbH http://modell-aachen.de |
 |  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
 |  Release: | %$RELEASE% |
 |  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  15 Jan 2013 | Foswikitask:Item12327: revamp signing system; assorted fixes |
 |  5 Feb 2012 | Foswikitask:Item1928: remove nop tags, support UTF-8 |
 |  18 Nov 2009 | Foswikitask:Item1963: add configure checkers for basic sanity of {SafeURI} and {UnsafeURI} filter values; also complain if {AllowRedirectUrl} is true |
 |  12 Oct 2009 | Foswikitask:Item8255: fix extraneous (missing '!') &lt;[endif]--&gt; shown by IEs at top of page |

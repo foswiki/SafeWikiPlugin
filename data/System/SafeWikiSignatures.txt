@@ -6,11 +6,11 @@ This topic can be used to allow trusted users to add Javascript signatures to th
 
 ---++ Signature table
 
-Insert the MD5 signature logged in the error log, along with an optional description of it's purpose. _The below example signature is covered by !LocalSite.cfg and can be safely removed from this topic_
+Insert the 43 character SHA-256 signature logged in the error log, along with an optional description of its purpose. _The below example signature is covered by !LocalSite.cfg and can be safely removed from this topic_
 
 #JsSignatures
 | *Signature* | *Description* | *Added by* |
-| ftLypjekDf5EqaqMbFgFxw | The onblur handler for !FirstName field in the UserRegistration topic. | Shipped example signature |
+| 2rvfFrggTCtyF5WOiTri1gDS8Boibj4Njn0e+VCBmDI | Ubiquitous "return false" handler | Shipped example signature |
 %COMMENT{noform="on" type="jssignature" templatetopic="%SYSTEMWEB%.SafeWikiSignaturesTemplate" }%
 
 %META:PREFERENCE{name="ALLOWTOPICCHANGE" title="ALLOWTOPICCHANGE" type="Set" value="AdminGroup"}%

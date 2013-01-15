@@ -12,7 +12,36 @@ package Foswiki::Plugins::SafeWikiPlugin::Node;
 
 use strict;
 use Assert;
+use Encode;
 use Foswiki::Func ();
+use HTML::Entities;
+
+# This is horribly misformatted because the perltidy is forcing me to
+# do it this way.
+my %uriTags = (
+    A          => ['href'],
+    APPLET     => [ 'archive', 'code', 'codebase' ],
+    AREA       => ['href'],
+    AUDIO      => ['src'],
+    BASE       => ['href'],
+    BLOCKQUOTE => ['cite'],
+    BODY       => ['background'],
+    BUTTON     => ['formaction'],
+    DEL        => ['cite'],
+    EMBED      => [ 'pluginspace', 'pluginurl', 'href', 'target', 'src' ],
+    FORM       => ['action'],
+    FRAME  => [ 'src', 'longdesc' ],
+    IFRAME => [ 'src', 'longdesc' ],
+    IMG    => [ 'src', 'longdesc', 'usemap' ],
+    INPUT  => [ 'src', 'usemap' ],
+    INS    => ['cite'],
+    LINK   => ['href'],
+    OBJECT => [ 'archive', 'codebase', 'data', 'usemap' ],
+    Q      => ['cite'],
+    SCRIPT => ['src'],
+    SOURCE => ['src'],
+    VIDEO => [ 'src', 'poster' ]
+);
 
 sub new {
     my ( $class, $tag, $attrs ) = @_;
@@ -77,8 +106,13 @@ sub generate {
     my $f = uc($tag);
     $f =~ s/[^\w]//;    # clean up !DOCTYPE etc
 
+    # Strip tag if it's on our list of baddies
+    if ( exists $Foswiki::Plugins::SafeWikiPlugin::STRIP_TAGS{$f} ) {
+        return '';
+    }
+
     # See if we have a simple attributes filter for this tag
-    $this->_filterURIs( $f, $filterURI );
+    $this->_filterURIs( $f, $filterURI, $filterHandler );
 
     # See if we have a tag-specific function for this tag type
     $f = "_$f";
@@ -101,8 +135,16 @@ sub generate {
     my @params;
     while ( my ( $k, $v ) = each %{ $this->{attrs} } ) {
         next unless $k && $k =~ /^\w+$/;
-        my $q = $v =~ m/"/ ? "'" : '"';
-        push( @params, $k . '=' . $q . $v . $q );
+
+        # Attributes were not entity-decoded during parsing, to make c&p
+        # signing easier. So we need to do a round trip. Yay!
+        $v = encode_entities( decode_entities($v), '<>&"' );
+
+        # This lovely hack courtesy of <nop> apparently being treated after
+        # completePageHandler
+        $v =~ s/&lt;(nop|\/?noautolink)&gt;/<$1>/g;
+
+        push( @params, $k . "=\"$v\"" );
     }
     my $p = join( ' ', @params );
     $p = ' ' . $p if $p;
@@ -127,17 +169,62 @@ sub _filterHandlers {
     my ( $this, $filter ) = @_;
 
     foreach my $attr ( keys %{ $this->{attrs} } ) {
+        my $value = $this->{attrs}{$attr};
+
+        # Try to filter JQueryPlugin::METADATA's stuff, too
+        if ( ( $attr eq 'class' || $attr eq 'data' ) && $value =~ /({.*})/ ) {
+            my $code = $1;
+
+            # Try to detect and allow simple objects
+            # Sub-regex for a number, identifier or string
+            # (doesn't accept all strings; we'd need real parsing for that)
+            # in particular, strings may not contain escaped characters
+            my $regexConstant = qr/(\w+|'[^'\\]*'|"[^"\\]*")/;
+
+            # Sub-regex for a key:value pair
+            my $regexKVpair = qr/\s* $regexConstant \s* : \s* # key
+                $regexConstant \s* # simple value
+            /x;
+            next if $code =~ /^{(
+            | # empty obj
+            $regexKVpair(,$regexKVpair)* # arbitrary number of values
+            )}$/x;
+
+            # Otherwise, filter it
+            $code = &$filter( $code, "metadata-via-class" );
+
+            # Retain the obj syntax for JQP::METADATA
+            $code = "{'dummy': [$code]}" unless $code =~ /^{.*}$/;
+            $this->{attrs}{$attr} =~ s/{.*}/$code/;
+            next;
+        }
+
+        # ... and the normal handler attributes, of course
         next unless $attr =~ /^on[a-z]+$/i;
         $this->{attrs}->{$attr} = &$filter( $this->{attrs}->{$attr} );
         ASSERT( defined $this->{attrs}->{$attr} ) if DEBUG;
     }
+
 }
 
 sub _filterURIs {
-    my ( $this, $tag, $filter ) = @_;
-    if ( exists $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Tags}{$tag} ) {
-        foreach
-          my $attr ( @{ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Tags}{$tag} } )
+    my ( $this, $tag, $filter, $filterHandler ) = @_;
+
+    # Unconditionally filter javascript: links
+    if ( exists $uriTags{$tag} ) {
+        foreach my $attr ( @{ $uriTags{$tag} } ) {
+            if ( defined( $this->{attrs}{$attr} ) ) {
+                next if ( $this->{attrs}{$attr} !~ /^\s*javascript:(.*)$/i );
+                my $code = &$filterHandler($1);
+                $this->{attrs}{$attr} = "javascript:$code";
+            }
+        }
+    }
+
+    # Filter according to config
+    if ( exists $Foswiki::cfg{Plugins}{SafeWikiPlugin}{URIAttributes}{$tag} ) {
+        foreach my $attr (
+            @{ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{URIAttributes}{$tag} } )
         {
             if ( defined( $this->{attrs}->{$attr} ) ) {
                 $this->{attrs}->{$attr} = &$filter( $this->{attrs}->{$attr} );
@@ -152,13 +239,13 @@ sub _filterURIs {
 # removed. Tags where we just want to filter the URI-valued
 # attributes of the tags can be added to $filterAttrs; these functions
 # are for "special cases" e.g. rewriting FORM action methods to always
-# use POST.
+# use POST (commented out below to serve as an example).
 
-sub _FORM {
-    my ($this) = @_;
-    $this->{attrs}->{method} = 'POST';
-    return 1;
-}
+#sub _FORM {
+#    my ($this) = @_;
+#    $this->{attrs}->{method} = 'POST';
+#    return 1;
+#}
 
 1;
 __DATA__
