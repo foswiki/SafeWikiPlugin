@@ -28,6 +28,7 @@ our %STRIP_TAGS;
 sub earlyInitPlugin {
     return if !$Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled};
     Foswiki::Plugins::SafeWikiPlugin::CoreHooks::hook();
+    Foswiki::Func::getContext()->{SafeWikiSignable} = 1;
 }
 
 sub initPlugin {
@@ -200,8 +201,15 @@ sub _filterHandler {
     my $type = shift || "on*";
     return $code if _filter( $code, 'Handler' );
     return $code if _report( "Disarmed $type", $code );
-    return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler}
+    my $res = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler}
       || '/*Code removed by SafeWikiPlugin*/';
+
+    # Once more, special treatment for the all-important StrikeOne
+    if ( $code =~ /^StrikeOne\.submit\(this\);?/ ) {
+        $res = "StrikeOne\.submit\(this\);$res";
+    }
+    return $res;
+
 }
 
 1;

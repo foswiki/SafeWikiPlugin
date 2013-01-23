@@ -194,7 +194,11 @@ sub checkSHA { return _haveSHA( getSHA(shift) ); }
 sub trustedInlineCode {
     my $code  = shift;
     my $ccode = _canonicalizedCode($code);
-    return 1 if checkSHA($ccode);
+
+    # Letting through empty strings lets StrikeOne handlers through (the
+    # StrikeOne part gets removed during canonicalization but we still want to
+    # keep it in the final output)
+    return 1 if $ccode eq '' or checkSHA($ccode);
 
     $code =~ m#^\s*/\*safewiki:([0-9a-zA-Z+/]{27})\*/#;
     return 1 if ( $1 && getMAC($ccode) eq $1 );
@@ -224,8 +228,16 @@ sub _haveSHA {
 # the signature with itself)
 sub _canonicalizedCode {
     my $text = shift;
+
+    # Filter out StrikeOne which is always okay and would get in our way for
+    # signatures if we left it in
+    $text =~ s#^StrikeOne\.submit\(this\);?##;
     $text =~ s/\s+/ /g;
     $text =~ s/(^\s+|\s+$)//g;
+
+    # Hackety hack -- we like StrikeOne, so ignore it
+    $text =~ s#^StrikeOne\.submit\(this\);?##;
+
     $text =~ s#^\s*/\*safewiki:[0-9A-Za-z+/]{27}\*/\s*##;
     return $text;
 }
