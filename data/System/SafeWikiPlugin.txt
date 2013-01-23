@@ -286,7 +286,7 @@ Foswiki::Func::addToZone("script", "MYZONETHINGY", "my script here", "JQUERYPLUG
 
 <verbatim>
 my $code = encode_entities("alert(\"This is my shiny code\");");
-if ($Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled}) {
+if ( Foswiki::Func::getContext()->{SafeWikiSignable} ) {
     Foswiki::Plugins::SafeWikiPlugin::Signatures::permitInlineCode($code);
 }
 # Presumably added to output later on
