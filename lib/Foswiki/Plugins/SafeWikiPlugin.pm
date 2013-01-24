@@ -29,6 +29,7 @@ sub earlyInitPlugin {
     return if !$Foswiki::cfg{Plugins}{SafeWikiPlugin}{Enabled};
     Foswiki::Plugins::SafeWikiPlugin::CoreHooks::hook();
     Foswiki::Func::getContext()->{SafeWikiSignable} = 1;
+    return undef;
 }
 
 sub initPlugin {
