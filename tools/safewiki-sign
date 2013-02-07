@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+#
+# Sign JavaScript code from the console
+#
+# cd to the tools directory to run it
+
+use strict;
+
+do '../bin/setlib.cfg';
+do "$Foswiki::foswikiLibPath/LocalSite.cfg";
+use Foswiki::Plugins::SafeWikiPlugin::Signatures;
+undef $/;
+my $code = <>;
+my $key = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SecretKey};
+if (!defined $key || $key eq '') {
+	print "Warning: secret key not defined or not initialized properly\n";
+} elsif ($key eq 'this is a bad key') {
+	print "Warning: using default secret key. This is insecure!\n";
+}
+my $sha = Foswiki::Plugins::SafeWikiPlugin::Signatures::getSHA($code);
+my $mac = Foswiki::Plugins::SafeWikiPlugin::Signatures::getMAC($code);
+print "\nSHA: $sha\nMAC: $mac\n";

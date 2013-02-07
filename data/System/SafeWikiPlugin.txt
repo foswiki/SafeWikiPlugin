@@ -108,15 +108,13 @@ whereas the MAC is only 27 characters long.
 While it's possible to calculate the SHA/MAC values yourself if you want to,
 it's much easier to let !SafeWikiPlugin do it instead. For security reasons,
 console access to the server is required. After writing a piece of
-!JavaScript code and embedding it in a topic or template, just run this from
-within Foswiki's =bin= directory:
+!JavaScript code and embedding it in a topic or template, just run
+./safewiki-sign from within Foswiki's =tools= directory and paste the code.
+As always, you can terminate your input with Ctrl-Z + Enter (Windows server)
+or Ctrl-D (Linux etc.; you may need to press it twice).
 
-<verbatim>
-FOSWIKI_ASSERTS=1 ./view topic=<topic to test> 2>&1 >/dev/null
-</verbatim>
-
-It will display a big error message; at the top of that message, you get the
-SHA/MAC hashes (using the currently configured secret key in the case of MAC).
+The script will output the correct SHA/MAC hashes (using the currently
+configured secret key in the case of MAC).
 
 The section for !SafeWikiPlugin in =/bin/configure= has an option
 ={SignaturesList}= where you can add your own signatures, like this:
