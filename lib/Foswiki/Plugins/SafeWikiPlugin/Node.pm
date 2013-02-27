@@ -180,10 +180,12 @@ sub _filterHandlers {
             # (doesn't accept all strings; we'd need real parsing for that)
             # in particular, strings may not contain escaped characters
             my $regexConstant = qr/(\w+|'[^'\\]*'|"[^"\\]*")/;
+            my $regexListOrSingle =
+qr/$regexConstant|\[\s*(?:$regexConstant(?:\s*,\s*$regexConstant)*)?\s*\]/;
 
             # Sub-regex for a key:value pair
             my $regexKVpair = qr/\s* $regexConstant \s* : \s* # key
-                $regexConstant \s* # simple value
+                $regexListOrSingle \s* # array or simple value
             /x;
             next if $code =~ /^{(
             | # empty obj
