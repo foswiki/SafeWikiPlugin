@@ -1,4 +1,34 @@
 # See bottom of file for notices
+
+=begin TML
+
+---+ package Foswiki::Plugins::SafeWikiPlugin::Signatures
+
+Apart from the actual parsing of HTML, this is the workhorse of
+SafeWikiPlugin, and also the part that makes available some functions other
+plugins can use. These functions should be available whenever the context
+={SafeWikiSignable}= is active.
+
+This package reads signatures from LSC and the =Signatures= sibling directory,
+and has all the necessary functions to check script snippets against these
+signatures as well as any inline signatures. See the [[%SYSTEMWEB%.SafeWikiPlugin][plugin topic]]
+for more details on how signatures work.
+
+Another thing that happens in this package is zone processing. Internally,
+whenever we find a zone that matches one of our signatures, we take it out of
+the page and substitute a placeholder. Once parsing and filtering is complete,
+we re-insert the original zone content. This approach allows us to do some
+fancy things like expanding macros in the zone after filtering is complete, so
+that code can be dynamically generated to some extent. Once again, the details
+relevant for writing that kind of code are explained in the [[%SYSTEMWEB%.SafeWikiPlugin][plugin topic]].
+
+You should never use any of the zone processing functions directly. Simply use
+the standard =Foswiki::Func::addToZone=; your zone contents will magically be
+trusted. Keep in mind that this means that you have to be careful about what
+you add to zones.
+
+=cut
+
 package Foswiki::Plugins::SafeWikiPlugin::Signatures;
 
 use strict;
@@ -8,9 +38,18 @@ use Digest::HMAC_SHA1;
 use Assert;
 use Foswiki::Sandbox ();
 
+# This collects signatures retrieved by read(). It can persist over the
+# entire lifetime of a FastCGI process or something similar. As is common
+# with these setups, you need to get the web server to restart the FastCGI
+# workers after you add/remove signatures.
 our %SIGNATURES;
+
+# This one stores signatures for a single request so that we can allow plugins
+# to temporarily permit automatically generated JS snippets.
 our %TMP_SIGNATURES;
 my $signatures_inited;
+
+# Here's where we store stuff we've replaced by a placeholder ("hoisted")
 our %HOISTED_CODE;
 
 # Macros we'll automatically let through while unhoisting (see below)
@@ -35,12 +74,7 @@ our @SAFE_EXPAND = (
     ],
 );
 
-my ( $key, $mac, $requestId );
-
-sub init {
-    $requestId = sprintf( "%09d", rand 1_000_000_000 );
-}
-init() unless defined $requestId;
+my ( $key, $mac );
 
 # Read signatures from standard places (LSC, Signatures subdir)
 sub read {
@@ -95,7 +129,7 @@ sub processZone {
     my $realMAC = getMAC($data);
 
     # undef = default when calling addToZone from plugins. Plugins are
-    # trustworthy. %ADDTOZONE% passes empty string instead.\
+    # trustworthy. %ADDTOZONE% passes empty string instead.
     # Therefore, undef = trusted.
     goto TRUST if !defined $signature;
 
@@ -164,16 +198,10 @@ sub unhoist {
     # matters
     $_[0] =~ s/<!--safewiki:([0-9A-Za-z\/\+]{27})-->/$unhoist->($1)/eg;
 
-    # For the sake of FastCGI, regenerate a new 'request ID' at this time.
-    # At this point we're done messing with zones, so this won't have any
-    # effect on the current request.
-    init();
-
-    # Similarly we can get rid of temporary signatures now.
+    # We can get rid of temporary signatures now -- all processing is over
     %TMP_SIGNATURES = ();
 }
 
-# Determine HMAC signature for a given piece of code
 sub getMAC {
     my $text = shift;
     my $key  = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SecretKey};
@@ -188,12 +216,19 @@ sub getSHA { return sha256_base64(shift); }
 # Check if we have the signature for a piece of code in our whitelist
 sub checkSHA { return _haveSHA( getSHA(shift) ); }
 
-# Given a piece of inline JavaScript code, check that it's either authorized
-# via a SHA256 signature provided by a plugin/admin, or via an inline HMAC
-# signature.
+=begin TML
+
+---++ trustedInlineCode($text) -> $boolean
+   * =$text= - JS snippet to check against signatures
+
+Given a piece of inline JavaScript code, check that it's either authorized via
+a SHA256 signature provided by a plugin/admin, or via an inline HMAC signature.
+
+=cut
+
 sub trustedInlineCode {
     my $code  = shift;
-    my $ccode = _canonicalizedCode($code);
+    my $ccode = canonicalizedCode($code);
 
     # Letting through empty strings lets StrikeOne handlers through (the
     # StrikeOne part gets removed during canonicalization but we still want to
@@ -205,10 +240,18 @@ sub trustedInlineCode {
     return 0;
 }
 
-# Make sure that the given piece of inline JavaScript code (handler or
-# <script> tag) will be accepted during the current request.
+=begin TML
+
+---++ permitInlineCode($text)
+   * =$text= - JS snippet to whitelist on the current view
+
+Makes sure that the given piece of inline JavaScript code (handler or
+<script> tag) will be accepted during the currently rendered page.
+
+=cut
+
 sub permitInlineCode {
-    my $sha = getSHA( _canonicalizedCode(shift) );
+    my $sha = getSHA( canonicalizedCode(shift) );
     $TMP_SIGNATURES{$sha} = 1;
 }
 
@@ -222,11 +265,19 @@ sub _haveSHA {
     return exists $SIGNATURES{ $_[0] } || exists $TMP_SIGNATURES{ $_[0] };
 }
 
-# Generates a canonicalized form of inline code that gets the same signature
-# even if it gets mangled a little bit
-# In particular, this removes any inline signature first (duh, we can't sign
-# the signature with itself)
-sub _canonicalizedCode {
+=begin TML
+
+---++ canonicalizedCode($text) -> $string
+   * =$text= - JS snippet to canonicalize
+
+Generates a canonicalized form of inline code that gets the same signature
+even if it gets mangled a little bit.
+
+In particular, this removes any inline signature first (duh, we can't sign
+the signature with itself).
+=cut
+
+sub canonicalizedCode {
     my $text = shift;
 
     # Filter out StrikeOne which is always okay and would get in our way for
@@ -235,7 +286,11 @@ sub _canonicalizedCode {
     $text =~ s/\s+/ /g;
     $text =~ s/(^\s+|\s+$)//g;
 
-    # Hackety hack -- we like StrikeOne, so ignore it
+    # SMELL: it's not very elegant to do it twice, but after this got
+    # introduced accidentally and there are already signatures based on this
+    # mechanic, it'll be hard to condense it back down into one step...
+    #
+    # the exciting case is something like ' StrikeOne.submit(this); foo'
     $text =~ s#^StrikeOne\.submit\(this\);?##;
 
     $text =~ s#^\s*/\*safewiki:[0-9A-Za-z+/]{27}\*/\s*##;

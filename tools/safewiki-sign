@@ -17,6 +17,7 @@ if (!defined $key || $key eq '') {
 } elsif ($key eq 'this is a bad key') {
 	print "Warning: using default secret key. This is insecure!\n";
 }
+$code = Foswiki::Plugins::SafeWikiPlugin::canonicalizedCode($code);
 my $sha = Foswiki::Plugins::SafeWikiPlugin::Signatures::getSHA($code);
 my $mac = Foswiki::Plugins::SafeWikiPlugin::Signatures::getMAC($code);
 print "\nSHA: $sha\nMAC: $mac\n";
