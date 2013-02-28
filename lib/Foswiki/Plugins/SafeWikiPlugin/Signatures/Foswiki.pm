@@ -7,4 +7,7 @@
 
     # PatternSkinWebCreateNewTopicTemplate.txt
     'vLFBaEsZg+AgnWTdBIct8XO/NFeDNlsQjoDGtMPz+ew',
+
+    # System.LanguageSelector
+    'NIgVniWE7ssRRgnFzfvtiI9n5Uslbuu8AZxRWZXxStU',
 ];
