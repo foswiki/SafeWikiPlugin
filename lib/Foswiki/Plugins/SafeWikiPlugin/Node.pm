@@ -134,7 +134,7 @@ sub generate {
     # Rebuild the tag parameters
     my @params;
     while ( my ( $k, $v ) = each %{ $this->{attrs} } ) {
-        next unless $k && $k =~ /^\w+$/;
+        next unless $k && $k =~ /^(?:\w|-)+$/;
 
         # Attributes were not entity-decoded during parsing, to make c&p
         # signing easier. So we need to do a round trip. Yay!
