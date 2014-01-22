@@ -58,6 +58,7 @@ sub completePageHandler {
     #my($html, $httpHeaders) = @_;
 
     return unless $_[1] =~ m#^Content-type: text/html#mi;
+    return if Foswiki::Func::getContext()->{'OverrideSafeWikiPlugin'};
 
     # PDF generation fails if we filter it, so don't do that
     if ( exists $Foswiki::cfg{Plugins}{GenPDFPrincePlugin}{Enabled}
