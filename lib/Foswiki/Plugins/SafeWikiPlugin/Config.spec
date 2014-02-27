@@ -57,6 +57,11 @@ $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SafeHandler} = [
 # **STRING 30**
 # String used to replace dodgy handlers.
 $Foswiki::cfg{Plugins}{SafeWikiPlugin}{DisarmHandler} = '/* Handler filtered by SafeWikiPlugin */';
+# **BOOLEAN**
+# By default, inline script blocks are replaced with a generic comment. If you
+# want to see what got filtered, enable this to get a comment containing an
+# escaped version of the original code.
+$Foswiki::cfg{Plugins}{SafeWikiPlugin}{ShowFilteredCode} = 0;
 
 #---+++ URIs
 # **PERL**

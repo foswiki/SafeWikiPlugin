@@ -183,6 +183,7 @@ sub _filterInline {
     return '' unless defined $code && length($code);
     return $code if _filter( $code, 'Inline' );
     return $code if _report( "Disarmed inline", $code );
+    return "/* Inline code disarmed by SafeWikiPlugin */" unless $Foswiki::cfg{Plugins}{SafeWikiPlugin}{ShowFilteredCode};
     $code =~ s#/\*#/+#gs;
     $code =~ s#\*/#+/#gs;
     return "/* Inline code disarmed by SafeWikiPlugin: $code */";
