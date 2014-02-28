@@ -156,7 +156,7 @@ sub generate {
     }
 
     # Rebuild the tag
-    if ( $text eq '' && $tag =~ /^(p|br|img|hr|input|meta|link)$/i ) {
+    if ( $text eq '' && $tag =~ /^(br|img|hr|input|meta|link)$/i ) {
         return "<$tag$p />";
     }
     else {
