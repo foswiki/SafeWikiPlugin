@@ -159,21 +159,19 @@ sub _filter {
 # raise an ASSERT.
 sub _report {
     my ( $m, $code ) = @_;
+    $code = Foswiki::Plugins::SafeWikiPlugin::Signatures::canonicalizedCode($code);
+    my $sha = Foswiki::Plugins::SafeWikiPlugin::Signatures::getSHA($code);
+    my $mac = Foswiki::Plugins::SafeWikiPlugin::Signatures::getMAC($code);
     $m =
         "SafeWikiPlugin: $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action}: "
       . $m . " on "
       . ( $ENV{REQUEST_URI}  || 'command line' )
       . ( $ENV{QUERY_STRING} || '' );
-    if ( DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT' ) {
-        ASSERT( 0,
-                $m
-              . " (SHA: "
-              . Foswiki::Plugins::SafeWikiPlugin::Signatures::getSHA($code)
-              . ", MAC: "
-              . Foswiki::Plugins::SafeWikiPlugin::Signatures::getMAC($code)
-              . ") $code" );
-    }
+    $m .= " (SHA: $sha, MAC: $mac";
     $m .= "\n$code";
+    if ( DEBUG && $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'ASSERT' ) {
+        ASSERT( 0, $m );
+    }
     Foswiki::Func::writeWarning($m);
     return $Foswiki::cfg{Plugins}{SafeWikiPlugin}{Action} eq 'WARN';
 }
