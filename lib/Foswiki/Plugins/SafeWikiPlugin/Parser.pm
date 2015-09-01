@@ -50,7 +50,7 @@ sub parseHTML {
 
     # Text still contains <nop> - ignore it
     $this->ignore_tags('nop');
-    $this->parse( Encode::decode( $Foswiki::cfg{Site}{CharSet}, $_[1] ) );
+    $this->parse( $_[1] );
     $this->eof();
     $this->_apply(undef);
     return $this->{stackTop};
@@ -58,8 +58,7 @@ sub parseHTML {
 
 sub generate {
     my $this = shift;
-    my $out  = $this->{stackTop}->generate(@_);
-    return Encode::encode( $Foswiki::cfg{Site}{CharSet}, $out );
+    return $this->{stackTop}->generate(@_);
 }
 
 sub stringify {
