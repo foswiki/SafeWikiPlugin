@@ -6,13 +6,13 @@ use strict;
 use warnings;
 use Assert;
 use Foswiki::Plugins::SafeWikiPlugin::Signatures ();
+use Foswiki::Render::Zones;
 
 my $hooked;
 my ( $oldADDTOZONE, $oldaddToZone );    # is this confusing?
 my $ATZsig;    # hack to let addToZone know we're calling it from the ATZ macro
 
 sub hook {
-
     # Prevent nasties on FastCGI/mod_perl
     # If the hooks were applied twice, the $old... variables would end up
     # containing the hooks themselves and we'd get ourselves stuck in an
@@ -24,13 +24,16 @@ sub hook {
     # magically let through all zone code added directly by plugins
     # (e.g. JQueryPlugin's prefs object).
     $oldADDTOZONE = \&Foswiki::ADDTOZONE;
-    $oldaddToZone = \&Foswiki::addToZone;
+    $oldaddToZone = \&Foswiki::Render::Zones::addToZone;
+
     undef *Foswiki::ADDTOZONE;
-    undef *Foswiki::addToZone;
+    undef *Foswiki::Render::Zones::addToZone;
+
     *Foswiki::ADDTOZONE =
       \&Foswiki::Plugins::SafeWikiPlugin::CoreHooks::ADDTOZONE;
-    *Foswiki::addToZone =
+    *Foswiki::Render::Zones::addToZone =
       \&Foswiki::Plugins::SafeWikiPlugin::CoreHooks::addToZone;
+
     $hooked = 1;
     return;
 }
