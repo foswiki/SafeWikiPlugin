@@ -9,5 +9,12 @@
     'vLFBaEsZg+AgnWTdBIct8XO/NFeDNlsQjoDGtMPz+ew',
 
     # System.LanguageSelector
-    'NIgVniWE7ssRRgnFzfvtiI9n5Uslbuu8AZxRWZXxStU',
+    'NIgVniWE7ssRRgnFzfvtiI9n5Uslbuu8AZxRWZXxStU',    #1.1.x
+    'osjxnKEPL/pQJbFk1dKsF7PYFmTyMWGmVSiL9inhxJY',    #2.1.3
+
+    # templates/viewsidebar.sidetoggle.tmpl
+    'IsH6w36l71lIxGSk5uo0m8xnGPgEq4AmuR4mT0Hy69E',    #2.1.3
+
+    # System.BulkRegistration
+    'Jv55fvw1BVbO9cycPnMjDYqzIf77ckSdKHaNyZ3865s',    #2.2.0
 ];
