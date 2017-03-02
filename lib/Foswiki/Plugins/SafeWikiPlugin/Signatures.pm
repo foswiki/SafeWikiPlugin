@@ -148,7 +148,7 @@ sub processZone {
     # lift out this block and put it back later
   TRUST: {
         $HOISTED_CODE{$realMAC} = $data;
-        $zone->{text} = "<!--safewiki:$realMAC-->";
+        $zone->{text} = "<!--safewiki:$realMAC:\$zone;;\$id-->";
     }
 }
 
@@ -160,7 +160,9 @@ sub processZone {
 sub unhoist {
     my $topicObject = pop;
     my $unhoist     = sub {
-        my $sig = shift;
+        my $sig  = shift;
+        my $zone = shift;
+        my $id   = shift;
         if ( !exists $HOISTED_CODE{$sig} ) {
             Foswiki::Func::writeWarning(
                 "Attempt to unhoist unknown signed code: $sig");
@@ -170,6 +172,8 @@ sub unhoist {
         # Unescape and expand macros if they are successfully validated
         my @safe_macros = @SAFE_EXPAND;
         my $code        = $HOISTED_CODE{$sig};
+        $code =~ s/\$id\b/$id/g;
+        $code =~ s/\$zone\b/$item->{zone}/g;
 
         # Expand unescaped macros
         # These can only really exist at this point if the zone entry was
@@ -196,7 +200,8 @@ sub unhoist {
 
     # Work in order of appearance, just in case the order of macro expansion
     # matters
-    $_[0] =~ s/<!--safewiki:([0-9A-Za-z\/\+]{27})-->/$unhoist->($1)/eg;
+    $_[0] =~
+s/<!--safewiki:([0-9A-Za-z\/\+]{27}):([^;]+);;(.*?)-->/$unhoist->($1,$2,$3)/eg;
 
     # We can get rid of temporary signatures now -- all processing is over
     %TMP_SIGNATURES = ();
