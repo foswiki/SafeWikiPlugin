@@ -207,16 +207,17 @@ s/<!--safewiki:([0-9A-Za-z\/\+]{27}):([^;]+);;(.*?)-->/$unhoist->($1,$2,$3)/eg;
     %TMP_SIGNATURES = ();
 }
 
+#SMELL: Foswiki::encode_utf8 is Foswiki 2.x only!
 sub getMAC {
     my $text = shift;
     my $key  = $Foswiki::cfg{Plugins}{SafeWikiPlugin}{SecretKey};
-    my $mac  = Digest::HMAC_SHA1->new($key);
-    $mac->add($text);
+    my $mac  = Digest::HMAC_SHA1->new( Foswiki::encode_utf8($key) );
+    $mac->add( Foswiki::encode_utf8($text) );
     return $mac->b64digest;
 }
 
 # Simple: hash a piece of code
-sub getSHA { return sha256_base64(shift); }
+sub getSHA { return sha256_base64( Foswiki::encode_utf8(shift) ); }
 
 # Check if we have the signature for a piece of code in our whitelist
 sub checkSHA { return _haveSHA( getSHA(shift) ); }
