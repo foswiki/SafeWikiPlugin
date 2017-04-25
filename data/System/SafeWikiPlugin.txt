@@ -293,20 +293,24 @@ return "<script>$code</script>";
  
 ---++ Installation Instructions
 
+*WARNING* the current version is only compatible with Foswiki 2.0 and later. If you need to install on an
+earlier Foswiki, you will need to download the Dec 2009 package.
+
 %$INSTALL_INSTRUCTIONS%
 
-All plugin configuration is done through =configure=, in the "Security setup" section. You must run and save configure at least once to complete installation.
+You must run and save =configure= at least once to complete installation.
 
 ---++ Plugin Info
 
 Sponsors for support and improvements are always welcome.
 
 |  Author(s): | Crawford Currie http://wikiring.com, Jan Krueger (Modell Aachen !GmbH) -- from an original idea by Sven Dowideit http://wikiring.com |
-|  Copyright: | &copy; 2007-2012 C-Dot Consultants http://c-dot.co.uk%BR%&copy; 2012-2013 Modell Aachen !GmbH http://modell-aachen.de |
+|  Copyright: | &copy; 2007-2017 C-Dot Consultants http://c-dot.co.uk%BR%&copy; 2012-2013 Modell Aachen !GmbH http://modell-aachen.de &copy; 2008-2017 Foswiki Contributors |
 |  License: | [[http://www.gnu.org/licenses/gpl.html][GPL (Gnu General Public License)]] |
 |  Release: | %$RELEASE% |
 |  Version: | %$VERSION% |
 |  Change History: | <!-- versions below in reverse order -->&nbsp; |
+|  25 Apr 2017 | Foswikitask:Item14335: support for signatures, and unicode support. Foswiki 2 only! |
 |  15 Jan 2013 | Foswikitask:Item12327: revamp signing system; assorted fixes |
 |  5 Feb 2012 | Foswikitask:Item1928: remove nop tags, support UTF-8 |
 |  18 Nov 2009 | Foswikitask:Item1963: add configure checkers for basic sanity of {SafeURI} and {UnsafeURI} filter values; also complain if {AllowRedirectUrl} is true |
